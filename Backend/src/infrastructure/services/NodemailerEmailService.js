@@ -31,7 +31,7 @@ class NodemailerEmailService extends IEmailService {
     const safeCode = escapeHtml(code);
 
     await transporter.sendMail({
-      from: { name: 'Elemental Battlecards', address: this.config.emailUser },
+      from: { name: 'Elemental Battlecards', address: this.config.emailFrom },
       to: email,
       subject: 'Verifica tu correo - Elemental Battlecards',
       text: `Hola ${username}, tu código de verificación es ${code}. Vence en 10 minutos.`,

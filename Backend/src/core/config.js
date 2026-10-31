@@ -71,6 +71,10 @@ class AppConfig {
     return this.env.EMAIL_USER || '';
   }
 
+  get emailFrom() {
+    return this.env.EMAIL_FROM || this.emailUser;
+  }
+
   get emailPass() {
     return this.env.EMAIL_PASS || '';
   }
