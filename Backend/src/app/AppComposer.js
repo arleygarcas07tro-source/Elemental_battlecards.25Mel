@@ -7,11 +7,12 @@ const AppConfig = require('../core/config');
 const Logger = require('../core/logger');
 const DatabaseFactory = require('../infrastructure/database/DatabaseFactory');
 const DatabaseInitializer = require('../infrastructure/database/DatabaseInitializer');
+const MissionCatalogInitializer = require('../infrastructure/database/MissionCatalogInitializer');
 const buildModels = require('../infrastructure/database/models');
 const SequelizeUserRepository = require('../infrastructure/repositories/SequelizeUserRepository');
 const SequelizePendingRegistrationRepository = require('../infrastructure/repositories/SequelizePendingRegistrationRepository');
 const BcryptPasswordHasher = require('../infrastructure/services/BcryptPasswordHasher');
-const NodemailerEmailService = require('../infrastructure/services/NodemailerEmailService');
+const BrevoApiEmailService = require('../infrastructure/services/BrevoApiEmailService');
 const JwtTokenService = require('../infrastructure/services/JwtTokenService');
 const AuthService = require('../domain/services/AuthService');
 const AuthController = require('../presentation/http/controllers/AuthController');
@@ -72,6 +73,7 @@ class AppComposer {
     try {
       await databaseInitializer.connect();
       await databaseInitializer.sync();
+      await new MissionCatalogInitializer(models.Mission).initialize();
       this.logger.info('✓ Modelos sincronizados con la BD');
       return { sequelize, models, available: true };
     } catch (error) {
@@ -93,7 +95,7 @@ class AppComposer {
       const authService = new AuthService({
         userRepository,
         pendingRegistrationRepository,
-        emailService: new NodemailerEmailService(this.config),
+        emailService: new BrevoApiEmailService(this.config),
         passwordHasher: new BcryptPasswordHasher(10),
         tokenService: new JwtTokenService(this.config.jwtSecret, { expiresIn: this.config.jwtExpiresIn }),
         logger: this.logger,

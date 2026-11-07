@@ -67,6 +67,10 @@ class AppConfig {
     return this.env.JWT_EXPIRES_IN || '1h';
   }
 
+  get brevoApiKey() {
+    return this.env.BREVO_API_KEY || '';
+  }
+
   get emailUser() {
     return this.env.EMAIL_USER || '';
   }
@@ -80,7 +84,7 @@ class AppConfig {
   }
 
   get emailHost() {
-    return this.env.EMAIL_HOST || 'smtp.gmail.com';
+    return this.env.EMAIL_HOST || 'smtp-relay.brevo.com';
   }
 
   get emailPort() {
