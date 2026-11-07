@@ -1,5 +1,6 @@
 import Phaser from 'phaser';
 import { buildApiUrl } from '../helpers/networkConfig.js';
+import { fitVideoInsideViewport } from './ui/videoBackground.js';
 
 const scriptURL = buildApiUrl('auth/register');
 const verificationURL = buildApiUrl('auth/verify-email');
@@ -17,18 +18,10 @@ export default class RegisterSceneUpdated extends Phaser.Scene {
 
     create() {
         const { width, height } = this.scale;
-        this.add.rectangle(width / 2, height / 2, width, height, 0x0f0a1a).setDepth(-2);
-
-        // BACKGROUND VIDEO
+        // Conserva la proporción del arte y completa los márgenes con color.
         this.bg = this.add.video(width / 2, height / 2, 'inicio-video').setOrigin(0.5);
         this.bg.setDepth(-1); // Poner el video al fondo
-
-        this.bg.on('play', () => {
-            const scaleX = width / this.bg.width;
-            const scaleY = height / this.bg.height;
-            const scale = Math.max(scaleX, scaleY);
-            this.bg.setScale(scale);
-        });
+        fitVideoInsideViewport(this, this.bg, { color: 0x101a30 });
 
         this.bg.once('created', () => {
             const videoEl = this.bg.video;
@@ -44,10 +37,14 @@ export default class RegisterSceneUpdated extends Phaser.Scene {
             <style>
                 * { box-sizing: border-box; font-family: "Segoe UI", Tahoma, sans-serif; }
                 .register-ui { 
-                    width: 300px;
-                    padding: 22px;
+                    width: min(340px, calc(100vw - 28px));
+                    max-height: calc(100dvh - 24px);
+                    overflow-y: auto;
+                    overscroll-behavior: contain;
+                    padding: 16px 20px;
                     text-align: center;
                 }
+                .registration-fields { display: flex; flex-direction: column; gap: 2px; }
                 .register-ui input {
                     width: 100%;
                     margin: 8px 0;
@@ -57,6 +54,8 @@ export default class RegisterSceneUpdated extends Phaser.Scene {
                     background: linear-gradient(180deg, rgba(0,0,0,0.5), rgba(0,0,0));
                     color: #ffd77a;
                     font-weight: 600;
+                    min-height: 44px;
+                    font-size: 16px;
                     box-shadow: 0 0 8px rgba(0,0,0);
                 }
                 .register-ui .label { 
@@ -87,7 +86,9 @@ export default class RegisterSceneUpdated extends Phaser.Scene {
                 }
                 .register-ui button {
                     width: 100%;
-                    margin-top: 18px; padding: 10px;
+                    margin-top: 12px; padding: 10px;
+                    min-height: 48px;
+                    font-size: 16px;
                     border-radius: 10px;
                     border: 1px solid #ffd77a;
                     cursor: pointer;
@@ -110,6 +111,22 @@ export default class RegisterSceneUpdated extends Phaser.Scene {
                 .btn-create.animated { backface-visibility: hidden; }
                 .register-ui button:hover { transform: translateY(-4px) scale(1.03); box-shadow: 0 8px 20px rgba(0,0,0,0.35); }
                 .register-ui button:active { transform: translateY(0) scale(0.98); }
+                .register-link { display: inline-block; min-height: 44px; padding: 10px 4px; }
+                @media (max-height: 520px) {
+                    .register-ui { padding: 8px 16px; }
+                    .register-ui input { margin: 4px 0; padding: 6px 10px; }
+                    .register-ui button { margin-top: 8px; }
+                    .register-ui .label { font-size: 13px; }
+                }
+                @media (orientation: portrait) {
+                    .register-ui { max-height: calc(100vw - 24px); }
+                }
+                @media (orientation: landscape) and (max-height: 560px) {
+                    .register-ui { width: min(560px, calc(100vw - 32px)); padding: 10px 18px; }
+                    .registration-fields { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0 16px; }
+                    .registration-fields > button { grid-column: 1 / -1; }
+                    .register-ui input { margin: 4px 0; }
+                    .register-ui button { margin-top: 8px; }
                 }
                 .register-link {
                     display: block;
@@ -158,7 +175,6 @@ export default class RegisterSceneUpdated extends Phaser.Scene {
         `;
 
         this.formElement = this.add.dom(width / 2, height / 2).createFromHTML(formHTML);
-
         const createBtn = this.formElement.node.querySelector('#create-btn');
         const registrationFields = this.formElement.node.querySelector('.registration-fields');
         const verificationPanel = this.formElement.node.querySelector('.verification-panel');
@@ -302,6 +318,7 @@ export default class RegisterSceneUpdated extends Phaser.Scene {
         // Logo arriba
         this.logoImage = this.add.image(this.scale.width / 2, this.scale.height * 0.08, 'logo').setOrigin(0.5).setDepth(1);
         this.logoImage.setScale(Math.min(0.7, (this.scale.width / 800)));
+        this.logoImage.setVisible(this.scale.height > 560);
 
         // Copyright
         this.copyText = this.add.text(this.scale.width / 2, this.scale.height - 18, 'Todos los derechos reservados', {
@@ -309,6 +326,7 @@ export default class RegisterSceneUpdated extends Phaser.Scene {
             fontSize: '14px',
             color: '#ffd77a'
         }).setOrigin(0.5, 0.5).setDepth(1);
+        this.copyText.setVisible(this.scale.height > 520);
 
         // Reposicionar el logo y formulario al redimensionar la ventana
         this.scale.on('resize', this.resize, this);
@@ -316,15 +334,13 @@ export default class RegisterSceneUpdated extends Phaser.Scene {
 
     resize(gameSize) {
         const { width, height } = gameSize;
-        if (this.bg && this.bg.width > 0) {
-            const scaleX = width / this.bg.width;
-            const scaleY = height / this.bg.height;
-            const scale = Math.max(scaleX, scaleY);
-            this.bg.setScale(scale);
-        }
-        if (this.formElement) this.formElement.setPosition(width / 2, height / 2 - 40);
+        if (this.formElement) this.formElement.setPosition(width / 2, height / 2);
         if (this.leftButtonsElement) this.leftButtonsElement.setPosition(90, height - 120);
         if (this.logoImage) this.logoImage.setPosition(width / 2, height * 0.18);
-        if (this.copyText) this.copyText.setPosition(width / 2, height - 18);
+        if (this.logoImage) this.logoImage.setVisible(height > 560);
+        if (this.copyText) {
+            this.copyText.setPosition(width / 2, height - 18);
+            this.copyText.setVisible(height > 520);
+        }
     }
 }

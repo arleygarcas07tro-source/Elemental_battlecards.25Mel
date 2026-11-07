@@ -901,8 +901,6 @@ export default class CreateRoomScene extends DomSceneBase {
         if (!gameSize) return;
         const { width, height } = gameSize;
 
-        if (this.bg) this.bg.setDisplaySize(width, height);
-
         super.onResize(gameSize);
     }
 }

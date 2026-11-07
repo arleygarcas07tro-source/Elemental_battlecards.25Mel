@@ -32,7 +32,7 @@ export default class HomeScenes extends DomSceneBase {
         // BACKGROUND
         // Fondo de video inmediato con rectángulo de respaldo para que nunca se vea
         // un hueco negro mientras el video (aunque venga de caché) prepara su frame.
-        this.bg = createVideoBackground(this, 'menu-bg-video', 0x0f0a1a);
+        this.bg = createVideoBackground(this, 'menu-bg-video', 0x0f0a1a, { fillViewport: true, fillAlpha: 0.48 });
 
         // Música ambiental del menú (procedural, bucle continuo sin cortes).
         startMenuMusic(this);
@@ -670,6 +670,73 @@ export default class HomeScenes extends DomSceneBase {
                 .bottom-btn { flex-direction: column; gap: 3px; padding: 6px 4px; min-height: 64px; font-size: 11px; letter-spacing: .03em; }
                 .bottom-btn .btn-icon { width: 34px; height: 34px; flex-basis: 34px; border-radius: 10px; font-size: 15px; }
             }
+            /* LANDSCAPE COMPACTO: conserva el panel lateral y las tres rutas visibles */
+            @media (max-width: 1080px) and (orientation: landscape) and (min-height: 501px) {
+                .main { flex-direction: row; overflow: hidden; padding: 4px 18px 10px; gap: 14px; }
+                .user-panel { width: clamp(150px, 17vw, 190px); flex: 0 0 clamp(150px, 17vw, 190px); min-width: 0; }
+                .main-content { gap: 10px; overflow: hidden; }
+                .cards-header { padding-top: 0; }
+                .cards-subtitle { font-size: 9px; }
+                .cards-title { font-size: clamp(24px, 3vw, 30px); margin: 3px 0; }
+                .cards-description { font-size: 12px; line-height: 1.35; }
+                .cards { flex-wrap: nowrap; gap: clamp(10px, 1.3vw, 16px); flex: 1; min-height: 0; margin-top: 0; }
+                .card { flex: 1 1 0; width: auto; min-width: 0; height: clamp(260px, 40vh, 330px); border-radius: 18px; }
+                .card-image { object-fit: contain; background: radial-gradient(ellipse at center, rgba(19, 28, 57, 0.88), rgba(7, 11, 28, 0.96)); }
+                .card:hover .card-image { transform: none; }
+                .content { left: 16px; right: 16px; bottom: 18px; }
+                .eyebrow { font-size: 9px; margin-bottom: 5px; }
+                .card h3 { font-size: clamp(20px, 2.4vw, 26px); margin-bottom: 7px; }
+                .card p { font-size: 11px; line-height: 1.4; margin-bottom: 10px; }
+                .bottom-actions { gap: 10px; padding: 4px 0 0; }
+                .bottom-btn { flex: 1 1 0; width: auto; min-width: 0; min-height: 52px; padding: 7px 10px; font-size: 11px; }
+                .bottom-btn .btn-icon { width: 32px; height: 32px; flex-basis: 32px; }
+            }
+
+            /* Móvil horizontal: toda la pantalla conserva la composición de escritorio */
+            @media (max-width: 900px) and (orientation: landscape) and (max-height: 500px) {
+                .header { gap: 8px; padding: 6px 12px 4px; }
+                .logo-box { gap: 8px; min-width: 0; }
+                .logo { width: 34px; height: 34px; border-radius: 9px; }
+                .brand-title { font-size: clamp(13px, 2.2vw, 17px); letter-spacing: .03em; }
+                .brand-sub { font-size: 7px; letter-spacing: .08em; }
+                .header-actions { gap: 4px; }
+                .header-btn, .btn-exit { gap: 3px; padding: 6px 7px; border-radius: 8px; font-size: 10px; }
+                .header-btn .notif-dot { width: 5px; height: 5px; }
+                .main { flex-direction: row; overflow: hidden; padding: 1px 12px 4px; gap: 8px; }
+                .user-panel { width: 120px; flex: 0 0 120px; min-width: 0; max-width: none; flex-direction: column; align-items: stretch; padding: 5px 6px; gap: 3px; border-radius: 10px; }
+                .user-avatar-orb { width: 30px; height: 30px; }
+                .user-name { font-size: 10px; }
+                .user-role { font-size: 6px; letter-spacing: .04em; }
+                .profile-stats { gap: 2px; padding-top: 3px; min-width: 0; border-top: 1px solid rgba(255, 255, 255, 0.08); }
+                .stat-line { font-size: 9px; }
+                .stat-line .label { font-size: 7px; letter-spacing: .04em; }
+                .stat-line .value { font-size: 9px; }
+                .xp-block { gap: 2px; }
+                .xp-top { font-size: 8px; }
+                .xp-bar { height: 5px; }
+                .btn-profile { padding: 4px 5px; font-size: 7px; letter-spacing: .02em; border-radius: 7px; }
+                .main-content { gap: 4px; overflow: hidden; min-height: 0; }
+                .cards-header { padding-top: 0; }
+                .cards-subtitle { font-size: 7px; letter-spacing: .14em; }
+                .cards-title { font-size: clamp(17px, 2.7vw, 22px); margin: 2px 0; }
+                .cards-description { font-size: 10px; line-height: 1.2; }
+                .cards { flex-wrap: nowrap; gap: 8px; flex: 1; min-height: 0; margin-top: 0; }
+                .card { flex: 1 1 0; width: auto; min-width: 0; height: clamp(132px, 45vh, 176px); border-radius: 12px; }
+                .card-image { object-fit: contain; background: radial-gradient(ellipse at center, rgba(19, 28, 57, 0.9), rgba(7, 11, 28, 0.98)); }
+                .card:hover .card-image { transform: none; }
+                .corner { width: 18px; height: 18px; }
+                .corner.tl { top: 6px; left: 6px; }
+                .corner.tr { top: 6px; right: 6px; }
+                .corner.bl { bottom: 6px; left: 6px; }
+                .corner.br { bottom: 6px; right: 6px; }
+                .content { left: 9px; right: 9px; bottom: 10px; }
+                .eyebrow { font-size: 7px; letter-spacing: .1em; margin-bottom: 3px; }
+                .card h3 { font-size: clamp(13px, 2vw, 17px); line-height: 1.05; margin-bottom: 4px; }
+                .card p { max-width: 100%; font-size: 10px; line-height: 1.25; margin-bottom: 0; }
+                .bottom-actions { gap: 6px; padding: 3px 0 0; }
+                .bottom-btn { flex: 1 1 0; width: auto; min-width: 0; min-height: 44px; padding: 4px 6px; gap: 6px; font-size: 10px; }
+                .bottom-btn .btn-icon { width: 26px; height: 26px; flex-basis: 26px; border-radius: 8px; font-size: 12px; }
+            }
         </style>
 
         <div class="wrap">
@@ -920,8 +987,6 @@ export default class HomeScenes extends DomSceneBase {
 
     onResize(gameSize) {
         const { width, height } = gameSize;
-
-        if (this.bg) this.bg.setDisplaySize(width, height);
 
         super.onResize(gameSize);
     }

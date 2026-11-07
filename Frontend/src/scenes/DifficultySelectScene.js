@@ -429,7 +429,6 @@ export default class DifficultySelectScene extends DomSceneBase {
 
     onResize(gameSize) {
         const { width, height } = gameSize;
-        if (this.bg) this.bg.setDisplaySize(width, height);
         super.onResize(gameSize);
     }
 }

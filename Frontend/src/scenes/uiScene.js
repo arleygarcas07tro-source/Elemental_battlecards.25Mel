@@ -407,7 +407,13 @@ export default class UIScene extends Phaser.Scene {
         }).setOrigin(0.5);
 
         startContainer.add([startBg, playIcon, startText]);
-        startContainer.setSize(bw, bh).setInteractive({ useHandCursor: true });
+        const touchWidth = Math.max(bw, 56);
+        const touchHeight = Math.max(bh, 48);
+        startContainer.setSize(bw, bh).setInteractive({
+            hitArea: new Phaser.Geom.Rectangle(-touchWidth / 2, -touchHeight / 2, touchWidth, touchHeight),
+            hitAreaCallback: Phaser.Geom.Rectangle.Contains,
+            useHandCursor: true
+        });
         startContainer.on('pointerover', () => startContainer.setScale(1.04));
         startContainer.on('pointerout', () => startContainer.setScale(1));
         startContainer.on('pointerdown', () => {

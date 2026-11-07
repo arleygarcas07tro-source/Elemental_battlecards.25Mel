@@ -2,6 +2,7 @@ import Phaser from 'phaser';
 import { buildApiUrl } from '../helpers/networkConfig.js';
 import guestSession from '../helpers/guestSession.js';
 import { stopMusic } from '../helpers/audioManager.js';
+import { fitVideoInsideViewport } from './ui/videoBackground.js';
 
 const scriptURL = buildApiUrl('auth/login');
 
@@ -21,11 +22,10 @@ export default class LoginScene extends Phaser.Scene {
     create() {
         stopMusic();
         const { width, height } = this.scale;
-        this.add.rectangle(width / 2, height / 2, width, height, 0x000000).setDepth(-2);
-
-        // VIDEO DE FONDO, cubriendo toda la pantalla.
+        // Conserva la proporción del arte y completa los márgenes con color.
         this.bg = this.add.video(width / 2, height / 2, 'login-bg-video').setOrigin(0.5);
         this.bg.setDepth(-1);
+        fitVideoInsideViewport(this, this.bg, { color: 0x101a30 });
         this.bg.once('created', () => {
             const videoEl = this.bg.video;
             if (!videoEl) return;
@@ -35,9 +35,7 @@ export default class LoginScene extends Phaser.Scene {
             videoEl.playsInline = true;
             videoEl.play().catch(() => {});
         });
-        this.bg.on('play', () => this.scaleBackground());
         this.bg.play(true);
-        this.scaleBackground();
 
         const formHTML = `
             <style>
@@ -48,8 +46,11 @@ export default class LoginScene extends Phaser.Scene {
                 body { margin: 0; }
 
                 .login-ui {
-                    width: 300px;
-                    padding: 24px 28px;
+                    width: min(300px, calc(100vw - 32px));
+                    max-height: calc(100dvh - 24px);
+                    overflow-y: auto;
+                    overscroll-behavior: contain;
+                    padding: 20px 24px;
                     text-align: center;
                 }
 
@@ -62,6 +63,8 @@ export default class LoginScene extends Phaser.Scene {
                     background: linear-gradient(180deg, rgba(0,0,0,0.5), rgba(0,0,0));
                     color: #ffd77a;
                     font-weight: 600;
+                    min-height: 44px;
+                    font-size: 16px;
                     box-shadow: 
                         0 0 8px rgba(0,0,0),
                         0 0 8px rgba(0, 0, 0);
@@ -79,8 +82,10 @@ export default class LoginScene extends Phaser.Scene {
 
                 .login-ui button {
                     width: 100%;
-                    margin-top: 44px;
-                    padding: 8px;
+                    margin-top: 24px;
+                    padding: 10px;
+                    min-height: 48px;
+                    font-size: 16px;
                     border-radius: 10px;
                     border: 1px solid #ffd77a;
                     cursor: pointer;
@@ -141,6 +146,14 @@ export default class LoginScene extends Phaser.Scene {
                 .btn-login.animated, .left-buttons button.animated { backface-visibility: hidden; }
                 .login-ui button:hover, .left-buttons button:hover { transform: translateY(-4px) scale(1.03); box-shadow: 0 8px 20px rgba(0,0,0,0.35); }
                 .login-ui button:active, .left-buttons button:active { transform: translateY(0) scale(0.98); }
+                @media (max-height: 520px) {
+                    .login-ui { padding: 10px 18px; }
+                    .login-ui button { margin-top: 12px; }
+                    .login-link { margin-top: 6px; }
+                }
+                @media (orientation: portrait) {
+                    .login-ui { max-height: calc(100vw - 24px); }
+                }
             </style>
 
                 <div class="login-ui">
@@ -161,7 +174,8 @@ export default class LoginScene extends Phaser.Scene {
         `;
 
 
-        this.formElement = this.add.dom(width / 2, height / 2 + Math.round(height * 0.16)).createFromHTML(formHTML);
+        const compactLayout = height <= 600;
+        this.formElement = this.add.dom(width / 2, height / 2 + (compactLayout ? 10 : Math.round(height * 0.16))).createFromHTML(formHTML);
         this.formElement.setDepth(10);
 
         // Inicializar animaciones en botones del formulario
@@ -263,8 +277,10 @@ export default class LoginScene extends Phaser.Scene {
         }
 
         // Logo arriba
-        this.logoImage = this.add.image(this.scale.width / 2, this.scale.height * 0.16, 'logo').setOrigin(0.5).setDepth(6);
-        this.logoImage.setScale(Math.min(0.6, (this.scale.width / 900)));
+        this.logoImage = this.add.image(this.scale.width / 2, this.scale.height * (compactLayout ? 0.07 : 0.16), 'logo').setOrigin(0.5).setDepth(6);
+        this.logoImage.setScale(compactLayout
+            ? Math.min(0.36, this.scale.width / 1200)
+            : Math.min(0.6, this.scale.width / 900));
 
         // Copyright
         this.copyText = this.add.text(this.scale.width / 2, this.scale.height - 18, 'Todos los derechos reservados', {
@@ -272,6 +288,7 @@ export default class LoginScene extends Phaser.Scene {
             fontSize: '14px',
             color: '#ffd77a'
         }).setOrigin(0.5, 0.5).setDepth(1);
+        this.copyText.setVisible(this.scale.height > 520);
 
         this.scale.off('resize', this.resize, this);
         this.scale.on('resize', this.resize, this);
@@ -281,15 +298,20 @@ export default class LoginScene extends Phaser.Scene {
 
     /** Reajusta el fondo cuando cambia el tamaño de la escena. */
     resize() {
-        this.scaleBackground();
-    }
-
-    scaleBackground() {
-        if (!this.bg || !this.bg.width || !this.bg.height) return;
-        const { width, height } = this.scale;
-        const scaleX = width / this.bg.width;
-        const scaleY = height / this.bg.height;
-        const scale = Math.max(scaleX, scaleY);
-        this.bg.setScale(scale);
+        if (this.formElement) {
+            const compactLayout = this.scale.height <= 600;
+            this.formElement.setPosition(this.scale.width / 2, this.scale.height / 2 + (compactLayout ? 10 : Math.round(this.scale.height * 0.16)));
+        }
+        if (this.logoImage) {
+            const compactLayout = this.scale.height <= 600;
+            this.logoImage.setPosition(this.scale.width / 2, this.scale.height * (compactLayout ? 0.07 : 0.16));
+            this.logoImage.setScale(compactLayout
+                ? Math.min(0.36, this.scale.width / 1200)
+                : Math.min(0.6, this.scale.width / 900));
+        }
+        if (this.copyText) {
+            this.copyText.setPosition(this.scale.width / 2, this.scale.height - 18);
+            this.copyText.setVisible(this.scale.height > 520);
+        }
     }
 }

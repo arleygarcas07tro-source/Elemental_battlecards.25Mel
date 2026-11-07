@@ -14,7 +14,7 @@ export const BATTLE_DESIGN = { width: 1600, height: 900 };
 export function battleScale(width, height) {
     const base = Math.min(width / BATTLE_DESIGN.width, height / BATTLE_DESIGN.height);
     const fitted = base * 0.94;
-    return Math.max(0.38, Math.min(fitted, 1.0));
+    return Math.max(0.25, Math.min(fitted, 1.0));
 }
 
 /** Posiciones X centradas de una fila de elementos. */
