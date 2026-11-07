@@ -1,4 +1,5 @@
 const DEFAULT_PORT = 3001;
+const CONFIGURED_BACKEND_URL = import.meta.env.VITE_BACKEND_URL;
 
 export function resolveBaseUrl() {
     if (typeof window !== 'undefined') {
@@ -6,6 +7,13 @@ export function resolveBaseUrl() {
         const fromQuery = params.get('backend');
         if (fromQuery) return fromQuery.trim().replace(/\/+$/, '');
         if (window.BACKEND_URL) return String(window.BACKEND_URL).trim().replace(/\/+$/, '');
+    }
+
+    if (CONFIGURED_BACKEND_URL) {
+        return String(CONFIGURED_BACKEND_URL).trim().replace(/\/+$/, '');
+    }
+
+    if (typeof window !== 'undefined') {
         const host = window.location.hostname || 'localhost';
         return `http://${host}:${DEFAULT_PORT}`;
     }
