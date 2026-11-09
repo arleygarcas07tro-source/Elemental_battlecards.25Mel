@@ -62,10 +62,10 @@ test('GameMatch.resolvePlayerAttack aplica daño por ventaja elemental', () => {
     const resolution = match.resolvePlayerAttack({ attackerIndex: 0, defenderIndex: 0 });
 
     assert.ok(resolution);
-    assert.equal(resolution.result.damage, 20);
-    assert.equal(resolution.result.defenderHealth, 80);
+    assert.equal(resolution.result.damage, 10);
+    assert.equal(resolution.result.defenderHealth, 90);
     assert.equal(resolution.result.winner, 'none');
-    assert.equal(match.opponent.field.get(0).health, 80);
+    assert.equal(match.opponent.field.get(0).health, 90);
     assert.equal(resolution.attackerIndex, 0);
     assert.equal(resolution.defenderIndex, 0);
 });

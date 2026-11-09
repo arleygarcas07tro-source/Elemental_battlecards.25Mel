@@ -3,8 +3,8 @@ import CardHealthService from '../game/CardHealthService.js';
 
 const LEVEL_DAMAGE = [
     [5, 5, 2],
-    [35, 10, 25],
-    [50, 45, 10]
+    [25, 15, 10],
+    [50, 35, 25]
 ];
 
 const ELEMENT_DAMAGE_MODIFIER = 5;

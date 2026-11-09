@@ -41,8 +41,8 @@ export const GAME_RULES_HTML = `
                 <li>Todas las cartas tienen 100% de vida máxima, sin importar su nivel. El nivel afecta el daño, no la vida.</li>
                 <li>El daño base depende del nivel del atacante y del defensor:</li>
                 <li>Nivel 1 causa 5% a nivel 1, 5% a nivel 2 y 2% a nivel 3.</li>
-                <li>Nivel 2 causa 35% a nivel 1, 10% a nivel 2 y 25% a nivel 3.</li>
-                <li>Nivel 3 causa 50% a nivel 1, 45% a nivel 2 y 10% a nivel 3.</li>
+                <li>Nivel 2 causa 25% a nivel 1, 15% a nivel 2 y 10% a nivel 3.</li>
+                <li>Nivel 3 causa 50% a nivel 1, 35% a nivel 2 y 25% a nivel 3.</li>
                 <li>La ventaja elemental suma 5 puntos porcentuales de daño; la desventaja resta 5 puntos.</li>
                 <li>El porcentaje de daño se resta de la vida actual hasta llegar a 0%. Los bonus de esencias se suman al daño; el daño final va de 0% a 100%.</li>
                 <li>La carta defensora pierde vida con cada ataque y se destruye al llegar a 0%.</li>

@@ -22,17 +22,17 @@ test('combat: las cartas de mayor nivel tienen más vida real', () => {
     assert.equal(defender.health, 142);
 });
 
-test('combat: la ventaja elemental suma 15% de daño', () => {
+test('combat: la ventaja elemental suma 5 puntos porcentuales', () => {
     const result = resolveCombat(
         { type: 'fuego', level: 1 },
         { type: 'planta', level: 1, health: 100 }
     );
 
-    assert.equal(result.damage, 20);
-    assert.equal(result.defenderHealth, 80);
+    assert.equal(result.damage, 10);
+    assert.equal(result.defenderHealth, 90);
 });
 
-test('combat: la desventaja elemental resta 15% y el daño no puede ser negativo', () => {
+test('combat: la desventaja elemental resta 5 puntos porcentuales y el daño no puede ser negativo', () => {
     const result = resolveCombat(
         { type: 'planta', level: 1 },
         { type: 'fuego', level: 1, health: 100 }
@@ -45,8 +45,8 @@ test('combat: la desventaja elemental resta 15% y el daño no puede ser negativo
 test('combat: aplica la tabla de daño por nivel del atacante y defensor', () => {
     const expected = [
         [5, 5, 2],
-        [35, 10, 25],
-        [50, 45, 10]
+        [25, 15, 10],
+        [50, 35, 25]
     ];
 
     expected.forEach((row, attackerIndex) => {
@@ -80,10 +80,10 @@ test('combat: el daño queda entre 0% y 100%, incluyendo bonus', () => {
 });
 
 test('combat: la carta se destruye cuando su vida llega a cero', () => {
-    const defender = { type: 'planta', level: 1, health: 20 };
+    const defender = { type: 'planta', level: 1, health: 10 };
     const result = resolveCombat({ type: 'fuego', level: 1 }, defender);
 
-    assert.equal(result.damage, 20);
+    assert.equal(result.damage, 10);
     assert.equal(result.defenderHealth, 0);
     assert.equal(result.destroyed, true);
     assert.equal(result.winner, 'attacker');
