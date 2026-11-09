@@ -509,6 +509,40 @@ export default class SettingsScene extends DomSceneBase {
                 .side-tab { flex: 1; }
                 .side-foot { display: none; }
             }
+            @media (max-width: 900px) and (orientation: landscape) and (max-height: 600px) {
+                .topbar { gap: 10px; padding: 5px 12px; }
+                .brand { gap: 8px; }
+                .brand .logo { width: 36px; height: 36px; border-radius: 10px; }
+                .brand-kicker { display: none; }
+                .brand h1 { font-size: 22px; }
+                .brand-block p { display: none; }
+                .btn-home { padding: 7px 11px; font-size: 11px; border-radius: 10px; }
+                .settings-body { grid-template-columns: minmax(0, 1fr); grid-template-rows: auto minmax(0, 1fr); gap: 8px; padding: 4px 12px 8px; }
+                .side-menu { gap: 8px; padding: 8px 12px; }
+                .side-title, .side-foot { display: none; }
+                .side-tabs { gap: 6px; overflow-x: auto; }
+                .side-tab { flex: 0 0 auto; min-height: 38px; padding: 7px 12px; }
+                .main-panel { min-height: 0; padding: 14px; overflow: auto; border-radius: 16px; }
+                .panel-title { margin-top: 2px; font-size: 20px; }
+                .panel-sub { margin-bottom: 8px; font-size: 11px; }
+                .panel-glow { margin-bottom: 10px; }
+                .pane[data-pane="sonido"] { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+                .setting-card { align-items: flex-start; gap: 9px; padding: 12px; border-radius: 14px; }
+                .setting-icon { flex-basis: 38px; width: 38px; height: 38px; border-radius: 11px; }
+                .setting-icon span { border-radius: 8px; font-size: 17px; }
+                .setting-main { gap: 7px; }
+                .setting-name { font-size: 12px; }
+                .setting-value { font-size: 16px; }
+                .slider-wrap input[type=range] { height: 22px; touch-action: pan-y; }
+                .account-card { gap: 12px; padding: 16px; border-radius: 15px; }
+                .account-actions { flex-wrap: wrap; }
+                .btn-link { min-height: 42px; padding: 9px 14px; font-size: 12px; }
+                .bottom-nav { gap: 6px; padding: 3px 10px; }
+                .nav-elements { gap: 5px; }
+                .nav-orb { width: 25px; height: 25px; }
+                .nav-items { gap: 3px; }
+                .nav-item { min-height: 32px; padding: 5px 8px; font-size: 10px; }
+            }
         </style>
 
         <div class="screen">

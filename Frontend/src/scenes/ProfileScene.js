@@ -744,6 +744,38 @@ export default class ProfileScene extends DomSceneBase {
                 .level-badge { flex-basis: 72px; width: 72px; height: 72px; }
                 .xp-header { font-size: 11.5px; }
             }
+            @media (max-width: 900px) and (orientation: landscape) and (max-height: 600px) {
+                .topbar { gap: 10px; padding: 5px 12px; }
+                .brand { gap: 8px; }
+                .brand .logo { width: 36px; height: 36px; border-radius: 10px; }
+                .brand-kicker { display: none; }
+                .brand h1 { font-size: 22px; }
+                .brand-block p { display: none; }
+                .btn-home { padding: 7px 11px; font-size: 11px; border-radius: 10px; }
+                .profile-body { grid-template-columns: minmax(0, 1fr); grid-template-rows: auto minmax(0, 1fr); gap: 8px; padding: 4px 12px 8px; }
+                .profile-side { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; align-items: center; gap: 8px; padding: 7px 10px; border-radius: 14px; }
+                .avatar-wrap { min-width: 0; flex-direction: row; gap: 7px; }
+                .avatar-orb { flex: 0 0 42px; width: 42px; height: 42px; }
+                .avatar-name { max-width: 100px; margin: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 13px; }
+                .avatar-level { font-size: 8px; letter-spacing: .06em; white-space: nowrap; }
+                .profile-tabs { min-width: 0; flex-direction: row; gap: 5px; overflow-x: auto; scrollbar-width: thin; }
+                .p-tab { flex: 1 0 auto; justify-content: center; gap: 5px; min-height: 38px; padding: 5px 8px; font-size: 11px; white-space: nowrap; }
+                .p-tab span { width: 24px; height: 24px; flex-basis: 24px; font-size: 12px; border-radius: 7px; }
+                .btn-avatar { max-width: 118px; min-height: 38px; padding: 5px 8px; font-size: 10px; line-height: 1.2; }
+                .profile-main { min-height: 0; overflow: auto; padding: 14px; border-radius: 16px; }
+                .panel-title { margin-top: 2px; font-size: 20px; }
+                .panel-sub { margin-bottom: 8px; font-size: 11px; }
+                .panel-glow { margin-bottom: 10px; }
+                .info-row { gap: 10px; padding: 10px; }
+                .level-badge { flex-basis: 58px; width: 58px; height: 58px; }
+                .frase { margin-block: 8px; padding: 10px; }
+                .stats-grid, .logros-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+                .bottom-nav { gap: 6px; padding: 3px 10px; }
+                .nav-elements { gap: 5px; }
+                .nav-orb { width: 25px; height: 25px; }
+                .nav-items { gap: 3px; }
+                .nav-item { min-height: 32px; padding: 5px 8px; font-size: 10px; }
+            }
         </style>
 
         <div class="screen">

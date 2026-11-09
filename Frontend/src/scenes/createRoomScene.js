@@ -487,6 +487,13 @@ export default class CreateRoomScene extends DomSceneBase {
                 .main { flex-direction: column; gap: 20px; overflow-y: auto; }
                 .panel { width: 92%; max-width: 520px; min-width: 0; }
             }
+            @media (max-width: 900px) and (orientation: landscape) and (max-height: 600px) {
+                .main { flex-direction: row; align-items: stretch; justify-content: center; gap: 14px; padding: 8px 12px 12px; overflow-x: hidden; overflow-y: auto; }
+                .panel { flex: 1 1 0; width: auto; max-width: none; min-width: 0; max-height: 100%; padding: 14px 14px 12px; border-radius: 16px; overflow-x: hidden; overflow-y: auto; }
+                .panel-title { font-size: clamp(18px, 3.3vh, 23px); }
+                .panel-desc { margin-bottom: 10px; font-size: 11px; }
+                .panel-head { margin-bottom: 10px; }
+            }
         </style>
 
         <div class="wrap">
@@ -884,6 +891,12 @@ export default class CreateRoomScene extends DomSceneBase {
     }
 
     onShutdown() {
+        // El chat vive mientras se conserva el socket para pasar a la partida LAN.
+        // Al salir del flujo LAN, se destruye para que no aparezca en otras escenas.
+        if (!this.keepSocket) {
+            this.chatWidget?.destroy();
+            this.chatWidget = null;
+        }
         // Desconectar socket si existe y no queremos mantenerlo (por ejemplo al cerrar la UI).
         if (this.socket && !this.keepSocket) {
             this.detachRoomSocketListeners();

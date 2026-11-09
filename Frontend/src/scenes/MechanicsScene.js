@@ -469,6 +469,22 @@ export default class MechanicsScene extends DomSceneBase {
                 .rules > li { padding: 18px 16px 16px 60px; }
                 .rules > li::before { left: 12px; width: 34px; height: 34px; font-size: 16px; }
             }
+            @media (max-width: 900px) and (orientation: landscape) and (max-height: 600px) {
+                .topbar { padding-block: 6px; }
+                .brand-block p { display: none; }
+                .mech-body { padding: 4px 12px 8px; }
+                .mech-panel { padding: 12px 16px; border-radius: 16px; }
+                .panel-title { margin-top: 2px; font-size: 20px; }
+                .panel-sub { margin-bottom: 7px; font-size: 11px; }
+                .panel-glow { margin-bottom: 8px; }
+                .rules-wrap { padding-right: 5px; }
+                .tutorial { margin-bottom: 12px; padding: 12px; }
+                .tutorial-heading { margin-bottom: 8px; }
+                .tutorial-heading h3 { font-size: 19px; }
+                .tutorial-steps { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+                .step-art { height: 78px; }
+                .bottom-nav { padding-block: 4px; }
+            }
         </style>
 
         <div class="screen">

@@ -2,7 +2,7 @@ import Phaser from 'phaser';
 import { buildApiUrl } from '../helpers/networkConfig.js';
 import guestSession from '../helpers/guestSession.js';
 import { stopMusic } from '../helpers/audioManager.js';
-import { fitVideoInsideViewport } from './ui/videoBackground.js';
+import { fitVideoInsideViewport, startLoopingVideo } from './ui/videoBackground.js';
 
 const scriptURL = buildApiUrl('auth/login');
 
@@ -26,16 +26,7 @@ export default class LoginScene extends Phaser.Scene {
         this.bg = this.add.video(width / 2, height / 2, 'login-bg-video').setOrigin(0.5);
         this.bg.setDepth(-1);
         fitVideoInsideViewport(this, this.bg, { color: 0x101a30 });
-        this.bg.once('created', () => {
-            const videoEl = this.bg.video;
-            if (!videoEl) return;
-            videoEl.muted = true;
-            videoEl.defaultMuted = true;
-            videoEl.loop = true;
-            videoEl.playsInline = true;
-            videoEl.play().catch(() => {});
-        });
-        this.bg.play(true);
+        startLoopingVideo(this.bg);
 
         const formHTML = `
             <style>
@@ -293,7 +284,7 @@ export default class LoginScene extends Phaser.Scene {
         this.scale.off('resize', this.resize, this);
         this.scale.on('resize', this.resize, this);
         this.events.once('shutdown', () => this.scale.off('resize', this.resize, this));
-        this.scaleBackground();
+        this.resize();
     }
 
     /** Reajusta el fondo cuando cambia el tamaño de la escena. */

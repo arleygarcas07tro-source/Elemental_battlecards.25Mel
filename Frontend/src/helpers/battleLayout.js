@@ -33,6 +33,11 @@ export function rowPositions(count, itemWidth, spacing, width, centerX = width /
 export function createBattleLayout(width, height, { usesGems = true } = {}) {
     const s = battleScale(width, height);
     const px = (value) => Math.round(value * s);
+    // En tablets, la escala general queda limitada por el ancho y comprimía
+    // todas las coordenadas Y hacia la mitad superior. Escala las posiciones
+    // verticales por el alto real y conserva el layout de escritorio.
+    const yScale = width <= 1200 ? Math.min(1, height / BATTLE_DESIGN.height) : s;
+    const py = (value) => Math.round(value * yScale);
 
     const isShort = height < 880;
     const isVeryShort = height < 780;
@@ -50,12 +55,12 @@ export function createBattleLayout(width, height, { usesGems = true } = {}) {
     // Muelle lateral derecho adaptativo
     const dockW = Math.min(px(280), Math.max(px(230), Math.round(width * 0.17)));
     const dockX = width - margin - dockW;
-    const dockY = px(isVeryShort ? 96 : isShort ? 102 : 108);
+    const dockY = py(isVeryShort ? 96 : isShort ? 102 : 108);
     const dock = {
         x: dockX,
         y: dockY,
         w: dockW,
-        h: height - dockY - px(10),
+        h: height - dockY - py(10),
         padding: px(10),
         gap: px(8)
     };
@@ -66,34 +71,34 @@ export function createBattleLayout(width, height, { usesGems = true } = {}) {
     const arena = {
         left: px(84),
         right: dockX - px(14),
-        top: px(isVeryShort ? 84 : isShort ? 88 : 92),
-        bottom: height - px(isVeryShort ? 66 : isShort ? 68 : 72)
+        top: py(isVeryShort ? 84 : isShort ? 88 : 92),
+        bottom: height - py(isVeryShort ? 66 : isShort ? 68 : 72)
     };
 
     // Filas adaptativas verticalmente
-    const opponentHandY = px(isVeryShort ? 142 : isShort ? 150 : 158);
-    const opponentFieldY = px(isVeryShort ? 306 : isShort ? 320 : 334);
-    const playerFieldY = px(isVeryShort ? 526 : isShort ? 548 : 570);
-    const playerHandY = px(isVeryShort ? 736 : isShort ? 760 : 784);
+    const opponentHandY = py(isVeryShort ? 142 : isShort ? 150 : 158);
+    const opponentFieldY = py(isVeryShort ? 306 : isShort ? 320 : 334);
+    const playerFieldY = py(isVeryShort ? 526 : isShort ? 548 : 570);
+    const playerHandY = py(isVeryShort ? 736 : isShort ? 760 : 784);
     const centerY = Math.round((opponentFieldY + playerFieldY) / 2);
 
     const fieldCenterX = width / 2;
     const fieldRow = rowPositions(6, cardField.width, fieldGap, width, fieldCenterX);
 
-    const opponentProfile = { x: margin, y: px(isVeryShort ? 80 : isShort ? 84 : 88), w: px(330), h: px(120) };
-    const playerProfile = { x: margin, y: height - px(isVeryShort ? 134 : isShort ? 140 : 146), w: px(330), h: px(120) };
-    const opponentGemPanel = { x: margin, y: px(isVeryShort ? 210 : isShort ? 220 : 230), w: px(304), h: px(52) };
+    const opponentProfile = { x: margin, y: py(isVeryShort ? 80 : isShort ? 84 : 88), w: px(330), h: px(120) };
+    const playerProfile = { x: margin, y: height - py(isVeryShort ? 134 : isShort ? 140 : 146), w: px(330), h: px(120) };
+    const opponentGemPanel = { x: margin, y: py(isVeryShort ? 210 : isShort ? 220 : 230), w: px(304), h: px(52) };
 
     const phasePanel = {
         x: Math.round(width / 2 - px(240)),
-        y: px(6),
+        y: py(6),
         w: px(480),
         h: px(62)
     };
-    const turnTimer = { x: Math.round(width / 2 + px(320)), y: px(isVeryShort ? 38 : 42), radius: px(32) };
-    const pauseButton = { x: px(46), y: px(isVeryShort ? 40 : 44), radius: px(25) };
-    const startButton = { x: width - margin - px(200), y: px(12), w: px(200), h: px(42) };
-    const matchTimerPanel = { x: width - margin - px(200), y: px(62), w: px(200), h: px(36) };
+    const turnTimer = { x: Math.round(width / 2 + px(320)), y: py(isVeryShort ? 38 : 42), radius: px(32) };
+    const pauseButton = { x: px(46), y: py(isVeryShort ? 40 : 44), radius: px(25) };
+    const startButton = { x: width - margin - px(200), y: py(12), w: px(200), h: px(42) };
+    const matchTimerPanel = { x: width - margin - px(200), y: py(62), w: px(200), h: px(36) };
 
     // Muelle compacto pero legible
     const dockTop = dock.y;

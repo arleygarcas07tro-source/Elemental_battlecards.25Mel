@@ -422,6 +422,37 @@ export default class CardsScene extends DomSceneBase {
             @media (max-width: 1100px) {
                 .gallery { grid-template-columns: repeat(3, 1fr); padding: 6px 30px 18px; }
             }
+            @media (max-width: 900px) and (orientation: landscape) {
+                .topbar { flex-wrap: nowrap; align-items: center; gap: 10px; padding: 5px 12px; }
+                .brand { flex: 0 0 auto; gap: 8px; min-width: 0; }
+                .brand .logo { width: 36px; height: 36px; border-radius: 10px; }
+                .brand-kicker, .brand-block p { display: none; }
+                .brand h1 { font-size: 22px; }
+                .controls { flex: 1 1 auto; width: auto; max-width: none; min-width: 0; margin-left: auto; gap: 5px; }
+                .search-wrap { max-width: none; }
+                .search-wrap input { min-height: 34px; padding: 6px 10px 6px 34px; font-size: 12px; border-radius: 9px; }
+                .search-wrap::before { left: 10px; font-size: 12px; }
+                .chips { width: 100%; flex-wrap: nowrap; justify-content: flex-start; gap: 5px; overflow-x: auto; padding: 2px; scrollbar-width: none; }
+                .chips::-webkit-scrollbar { display: none; }
+                .filter-chip { flex: 0 0 auto; min-height: 30px; gap: 5px; padding: 4px 8px; font-size: 10px; }
+                .filter-chip .chip-orb { width: 15px; height: 15px; }
+                .gallery { grid-template-columns: repeat(6, minmax(0, 1fr)); grid-auto-rows: max-content; gap: 6px; padding: 4px 10px 8px; overflow-y: auto; }
+                .gal-card { height: auto; min-width: 0; aspect-ratio: 3 / 4; border-radius: 10px; }
+                .gal-frame { display: block; background: rgba(5, 7, 20, .7); }
+                .gal-img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: contain; }
+                .gal-shade { pointer-events: none; }
+                .collection-badge { top: 4px; left: 4px; padding: 2px 5px; font-size: 8px; }
+                .bottom-nav { gap: 6px; padding: 3px 10px; }
+                .nav-elements { gap: 5px; }
+                .nav-orb { width: 25px; height: 25px; }
+                .nav-items { gap: 3px; }
+                .nav-item { min-height: 32px; padding: 5px 8px; font-size: 10px; }
+            }
+            @media (max-width: 900px) and (orientation: landscape) and (hover: none) {
+                .gal-card:hover { transform: none; border-color: rgba(255,255,255,0.10); box-shadow: none; }
+                .gal-card:hover .gal-img { transform: none; filter: saturate(1.02); }
+                .filter-chip:hover, .nav-orb:hover { transform: none; }
+            }
         </style>
 
         <div class="screen">

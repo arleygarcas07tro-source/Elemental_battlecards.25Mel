@@ -32,7 +32,7 @@ export default class HomeScenes extends DomSceneBase {
         // BACKGROUND
         // Fondo de video inmediato con rectángulo de respaldo para que nunca se vea
         // un hueco negro mientras el video (aunque venga de caché) prepara su frame.
-        this.bg = createVideoBackground(this, 'menu-bg-video', 0x0f0a1a, { fillViewport: true, fillAlpha: 0.48 });
+        this.bg = createVideoBackground(this, 'menu-bg-video', 0x0f0a1a, { mode: 'responsive' });
 
         // Música ambiental del menú (procedural, bucle continuo sin cortes).
         startMenuMusic(this);

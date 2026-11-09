@@ -518,6 +518,30 @@ export default class MissionsScene extends DomSceneBase {
             @media (max-width: 900px) {
                 .missions { grid-template-columns: 1fr; }
             }
+            @media (max-width: 900px) and (orientation: landscape) and (max-height: 600px) {
+                .topbar { padding: 3px 12px; }
+                .brand { gap: 8px; }
+                .brand .logo { width: 36px; height: 36px; border-radius: 10px; }
+                .brand-kicker, .brand-block p { display: none; }
+                .brand h1 { font-size: 22px; }
+                .btn-home { padding: 7px 11px; font-size: 11px; border-radius: 10px; }
+                .missions { grid-template-columns: repeat(3, minmax(0, 1fr)); grid-template-rows: repeat(2, minmax(0, 1fr)); gap: 7px; padding: 4px 10px 6px; overflow-y: auto; }
+                .mission-card { min-height: 0; gap: 5px; padding: 8px 10px; border-radius: 13px; }
+                .card-top { gap: 7px; }
+                .mission-orb { flex-basis: 36px; width: 36px; height: 36px; }
+                .element-tag, .mission-state { font-size: 8px; }
+                .mission-title { margin: 1px 0; font-size: 14px; }
+                .mission-desc { min-height: 0; font-size: 10px; line-height: 1.25; display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; overflow: hidden; }
+                .mission-bar { height: 5px; flex: 0 0 5px; }
+                .mission-meta { gap: 4px; font-size: 10px; }
+                .mission-reward { padding: 3px 7px; font-size: 9px; }
+                .btn-details { min-height: 34px; padding: 6px 9px; font-size: 11px; border-radius: 9px; }
+                .bottom-nav { gap: 6px; padding: 3px 10px; }
+                .nav-elements { gap: 5px; }
+                .nav-orb { width: 25px; height: 25px; }
+                .nav-items { gap: 3px; }
+                .nav-item { min-height: 32px; padding: 5px 8px; font-size: 10px; }
+            }
         </style>
 
         <div class="screen">

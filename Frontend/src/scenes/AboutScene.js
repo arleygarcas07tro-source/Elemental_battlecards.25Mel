@@ -540,6 +540,19 @@ export default class AboutScene extends DomSceneBase {
                 .emblem { width: 190px; height: 190px; }
                 .emblem-orb { transform-origin: center; }
             }
+            @media (max-width: 900px) and (orientation: landscape) and (max-height: 600px) {
+                .topbar { padding-block: 6px; }
+                .brand-block p { display: none; }
+                .about-body { gap: 10px; padding: 4px 12px 8px; }
+                .about-side { gap: 10px; padding: 10px; }
+                .emblem { flex: 0 0 96px; width: 96px; height: 96px; }
+                .emblem-labels, .motto { font-size: 11px; }
+                .about-panel { padding: 14px; }
+                .panel-title { margin-top: 2px; font-size: 20px; }
+                .panel-sub { margin-bottom: 8px; font-size: 11px; }
+                .secs { overflow-y: visible; }
+                .bottom-nav { padding-block: 4px; }
+            }
         </style>
 
         <div class="screen">

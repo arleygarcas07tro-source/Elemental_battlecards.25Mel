@@ -360,6 +360,53 @@ export default class DifficultySelectScene extends DomSceneBase {
             @media (max-width: 520px) {
                 .difficulty-grid { grid-template-columns: 1fr; }
             }
+            /* En móvil horizontal, mostrar los diez niveles sin desplazamiento vertical. */
+            @media (max-width: 960px) and (orientation: landscape) and (max-height: 600px) {
+                .header { gap: 8px; padding: 4px 12px 0; }
+                .back-button { padding: 7px 12px; font-size: 11px; }
+                .head-title { font-size: clamp(14px, 3.2vh, 20px); }
+                .main {
+                    justify-content: center;
+                    gap: clamp(4px, 1.1vh, 9px);
+                    padding: 3px 12px 8px;
+                    overflow: hidden;
+                }
+                .cards-header .cards-subtitle { font-size: clamp(8px, 1.55vh, 10px); }
+                .section-title { margin: 2px 0; font-size: clamp(18px, 4.2vh, 26px); }
+                .cards-desc { margin-top: 1px; font-size: clamp(9px, 1.65vh, 12px); }
+                .mode-select { gap: 6px; }
+                .mode-btn { padding: 6px 10px; font-size: clamp(9px, 1.8vh, 11px); }
+                .difficulty-grid {
+                    width: min(100%, 900px);
+                    grid-template-columns: repeat(5, minmax(0, 1fr));
+                    gap: clamp(4px, 1vw, 10px);
+                }
+                .difficulty-card {
+                    height: clamp(104px, 31vh, 142px);
+                    padding: 7px 5px 6px;
+                    border-radius: 12px;
+                }
+                .dv-medallion {
+                    width: clamp(28px, 7.8vh, 38px);
+                    height: clamp(28px, 7.8vh, 38px);
+                    margin: 4px auto 3px;
+                    border-radius: 9px;
+                }
+                .dv-medallion span { font-size: clamp(14px, 3.8vh, 19px); }
+                .dv-el { top: 6px; right: 6px; width: 26px; height: 26px; }
+                .dv-level { margin-bottom: 2px; font-size: clamp(7px, 1.45vh, 9px); letter-spacing: .1em; }
+                .dv-name { margin-bottom: 3px; font-size: clamp(10px, 2.35vh, 14px); }
+                .dv-dots { gap: 3px; margin-bottom: 4px; }
+                .dv-dot { width: 6px; height: 6px; }
+                .dv-desc {
+                    display: -webkit-box;
+                    overflow: hidden;
+                    -webkit-box-orient: vertical;
+                    -webkit-line-clamp: 2;
+                    font-size: clamp(7px, 1.65vh, 10px);
+                    line-height: 1.2;
+                }
+            }
         </style>
 
         <div class="wrap">
