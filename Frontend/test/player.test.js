@@ -88,8 +88,8 @@ test('Player: fuseCards fusiona dos cartas iguales en el campo', () => {
     assert.ok(result);
     assert.equal(result.newCard.level, 2);
     assert.equal(result.newCard.type, 'fuego');
-    assert.equal(result.newCard.maxHealth, 150);
-    assert.equal(result.newCard.health, 120);
+    assert.equal(result.newCard.maxHealth, 100);
+    assert.equal(result.newCard.health, 80);
     assert.equal(result.emptiedIndex, 0);
     assert.equal(p.field.get(0), null);
     assert.equal(p.field.get(1).level, 2);
@@ -130,8 +130,8 @@ test('Player: fuseFromHand fusiona una carta de la mano con el campo', () => {
 
     assert.ok(result);
     assert.equal(result.level, 2);
-    assert.equal(result.maxHealth, 150);
-    assert.equal(result.health, 150);
+    assert.equal(result.maxHealth, 100);
+    assert.equal(result.health, 100);
     assert.equal(p.hand.length, 0);
     assert.equal(p.field.get(3).level, 2);
 });

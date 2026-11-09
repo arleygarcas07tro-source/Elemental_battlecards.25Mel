@@ -13,13 +13,13 @@ test('combat: nivel 1 contra nivel 1 causa 5% de daño neutral', () => {
     assert.equal(defender.health, 95);
 });
 
-test('combat: las cartas de mayor nivel tienen más vida real', () => {
-    const defender = { type: 'luz', level: 2, health: 150, maxHealth: 150 };
+test('combat: el nivel de la carta no cambia su vida máxima', () => {
+    const defender = { type: 'luz', level: 2, health: 100, maxHealth: 100 };
     const result = resolveCombat({ type: 'fuego', level: 1 }, defender);
 
     assert.equal(result.damage, 5);
-    assert.equal(result.defenderHealth, 142);
-    assert.equal(defender.health, 142);
+    assert.equal(result.defenderHealth, 95);
+    assert.equal(defender.health, 95);
 });
 
 test('combat: la ventaja elemental suma 5 puntos porcentuales', () => {

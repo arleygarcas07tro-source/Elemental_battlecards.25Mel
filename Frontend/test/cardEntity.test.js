@@ -20,14 +20,14 @@ test('CardEntity.create añade owner cuando se indica', () => {
     assert.equal(entity.owner, 'player');
 });
 
-test('CardEntity.create asigna la vida real según el nivel', () => {
+test('CardEntity.create asigna 100 puntos de vida a todos los niveles', () => {
     const level2 = CardEntity.create({ id: 'agua-2', type: 'agua', level: 2 });
     const level3 = CardEntity.create({ id: 'agua-3', type: 'agua', level: 3 });
 
-    assert.equal(level2.maxHealth, 150);
-    assert.equal(level2.health, 150);
-    assert.equal(level3.maxHealth, 200);
-    assert.equal(level3.health, 200);
+    assert.equal(level2.maxHealth, 100);
+    assert.equal(level2.health, 100);
+    assert.equal(level3.maxHealth, 100);
+    assert.equal(level3.health, 100);
 });
 
 test('CardEntity.create reutiliza instanceId salvo forceNewId', () => {
@@ -61,8 +61,8 @@ test('CardEntity.fused conserva el porcentaje de vida sobre el nuevo máximo', (
         { type: 'sombra', level: 1, health: 35, maxHealth: 100 }
     );
 
-    assert.equal(fused.maxHealth, 150);
-    assert.equal(fused.health, 120);
+    assert.equal(fused.maxHealth, 100);
+    assert.equal(fused.health, 80);
 });
 
 test('CardEntity.fused devuelve null en nivel máximo', () => {

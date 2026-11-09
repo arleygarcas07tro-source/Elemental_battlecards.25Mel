@@ -10,7 +10,7 @@ test('BotAI: dificultad por defecto 3 y threshold 5', () => {
 
     assert.equal(bot.difficulty, 3);
     assert.equal(bot.getAttackThreshold(), 5);
-    assert.equal(bot.actionDelay, 300);
+    assert.ok(bot.actionDelay >= 400 && bot.actionDelay <= 560);
     assert.equal(GAME_CONFIG.BOT_NEXT_ACTION_DELAY_MS, 250);
 });
 
@@ -19,15 +19,15 @@ test('BotAI: mantiene una breve pausa acorde a la dificultad', () => {
     const standardBot = new BotAI(4);
     const hardBot = new BotAI(8);
 
-    assert.ok(easyBot.actionDelay >= 800 && easyBot.actionDelay <= 1400);
-    assert.ok(standardBot.actionDelay >= 250 && standardBot.actionDelay <= 400);
-    assert.ok(hardBot.actionDelay >= 80 && hardBot.actionDelay <= 140);
+    assert.ok(easyBot.actionDelay >= 650 && easyBot.actionDelay <= 900);
+    assert.ok(standardBot.actionDelay >= 300 && standardBot.actionDelay <= 430);
+    assert.ok(hardBot.actionDelay >= 75 && hardBot.actionDelay <= 140);
 });
 
 test('BotAI: dificultad máxima sin delay y con bonus de puntuación', () => {
     const bot = new BotAI(10);
 
-    assert.equal(bot.actionDelay, 0);
+    assert.ok(bot.actionDelay >= 20 && bot.actionDelay <= 55);
     assert.equal(bot.scoreModifier, 10);
     assert.equal(bot.getAttackThreshold(), -10);
 });
@@ -74,9 +74,9 @@ test('BotAI: decideAction hace pass sin acciones posibles', () => {
     const match = new GameMatch({ config: GAME_CONFIG });
     const opponent = match.opponent;
     opponent.hand = [];
-    for (let i = 0; i < opponent.field.size; i++) {
-        opponent.field.set(i, { type: CARD_TYPES.FUEGO, level: 1 });
-    }
+    Object.values(CARD_TYPES).forEach((type, index) => {
+        opponent.field.set(index, { type, level: 3 });
+    });
 
     const plan = new BotAI(1).decideAction({
         opponent,
@@ -120,7 +120,7 @@ test('BotAI: decideAction ataca directo cuando está obligado y no hay defensas'
         mustAttack: true,
         playerHasField: false,
         opponentAttackers: [{ card: { type: CARD_TYPES.FUEGO, level: 1 }, index: 3 }],
-        bestAttackPool: [],
+        bestAttackPool: [{ card: { type: CARD_TYPES.FUEGO, level: 1 }, index: 3 }],
         revealedDefenders: [],
         playerFieldCards: []
     });

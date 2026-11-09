@@ -163,7 +163,14 @@ test('GameMatch.useEssencePower emite essence-power-used', () => {
 
     match.useEssencePower(CARD_TYPES.ESPIRITU);
 
-    assert.deepEqual(emitted, { essenceType: CARD_TYPES.ESPIRITU, name: 'Conducto', gemCost: 2 });
+    assert.deepEqual(emitted, {
+        essenceType: CARD_TYPES.ESPIRITU,
+        name: 'Conducto',
+        gemCost: 2,
+        purchased: false,
+        ownerId: 'player',
+        side: 'player'
+    });
     assert.equal(match.turn.opponentConvergenceBlocked, true);
 });
 
