@@ -5,6 +5,8 @@ import { loadVideoIfNeeded, createVideoBackground } from './ui/videoBackground.j
 import { energyParticlesHTML } from './ui/elementCatalog.js';
 import { MENU_MODULES as cards } from '../content/menuModules.js';
 import guestSession from '../helpers/guestSession.js';
+import NotificationCenter from '../helpers/notificationCenter.js';
+import { resolvePlayerData } from '../helpers/playerData.js';
 
 export default class HomeScenes extends DomSceneBase {
     constructor() {
@@ -18,7 +20,7 @@ export default class HomeScenes extends DomSceneBase {
     }
 
     init(data) {
-        this.playerData = data.playerData || data || {};
+        this.playerData = resolvePlayerData(data);
     }
 
     preload() {
@@ -44,6 +46,7 @@ export default class HomeScenes extends DomSceneBase {
         const welcomeText = isGuest ? 'Sesión de invitado · progreso temporal' : `Bienvenido, ${username}`;
         const roleText = isGuest ? 'Invitado · sin progreso guardado' : stats.ranking;
         const xpPercent = Math.min(100, Math.round((stats.xpActual / stats.xpMaxima) * 100));
+        const unreadNotificationCount = NotificationCenter.unreadCount(username);
 
         const cardsHtml = cards.map((card, index) => `
             <div class="card" data-index="${index}" style="--card-accent:${card.accent}; --card-glow:${card.glow};">
@@ -108,7 +111,7 @@ export default class HomeScenes extends DomSceneBase {
             /* HEADER */
             .header {
                 position: relative;
-                z-index: 2;
+                z-index: 10;
                 flex: 0 0 auto;
                 display: flex;
                 justify-content: space-between;
@@ -144,6 +147,7 @@ export default class HomeScenes extends DomSceneBase {
 
             /* HEADER BUTTONS */
             .header-actions { display: flex; align-items: center; gap: 10px; }
+            .header-actions { flex-wrap: wrap; justify-content: flex-end; }
             .header-btn {
                 position: relative;
                 display: flex;
@@ -175,6 +179,24 @@ export default class HomeScenes extends DomSceneBase {
                 border-radius: 50%;
                 background: #f1c86a;
                 box-shadow: 0 0 8px rgba(241, 200, 106, 0.9);
+            }
+            .header-btn .notif-dot[hidden] { display: none; }
+            .more-menu { position: relative; }
+            .more-menu[open] .more-options,
+            .more-menu:hover .more-options,
+            .more-menu:focus-within .more-options { display: flex; }
+            .more-options {
+                display: none; position: absolute; right: 0; top: 100%; z-index: 20;
+                min-width: 190px; flex-direction: column; gap: 4px; padding: 7px;
+                border: 1px solid rgba(230, 200, 115, .45); border-radius: 12px;
+                background: rgba(8, 11, 28, .97); box-shadow: 0 14px 35px rgba(0,0,0,.5);
+            }
+            .more-options .header-btn { width: 100%; justify-content: flex-start; border-color: transparent; box-shadow: none; }
+            .more-options .header-btn:hover {
+                border-color: rgba(241, 200, 106, .65);
+                transform: none;
+                background: linear-gradient(160deg, rgba(25, 40, 86, 0.98), rgba(12, 22, 54, 0.98));
+                box-shadow: inset 0 0 18px rgba(143, 183, 255, 0.09), 0 0 14px rgba(230, 200, 115, 0.12);
             }
             .btn-exit {
                 position: relative;
@@ -658,6 +680,9 @@ export default class HomeScenes extends DomSceneBase {
                 .card { width: 260px; height: 360px; }
             }
             @media (max-width: 860px) {
+                .header { align-items: flex-start; flex-wrap: wrap; }
+                .header-actions { width: 100%; justify-content: flex-start; gap: 6px; }
+                .header-btn { padding: 8px 10px; font-size: 11px; }
                 .main { flex-direction: column; overflow-y: auto; }
                 .user-panel { width: 100%; flex: none; flex-direction: row; align-items: center; gap: 16px; }
                 .user-panel .btn-profile { margin-top: 0; }
@@ -700,6 +725,7 @@ export default class HomeScenes extends DomSceneBase {
                 .brand-title { font-size: clamp(13px, 2.2vw, 17px); letter-spacing: .03em; }
                 .brand-sub { font-size: 7px; letter-spacing: .08em; }
                 .header-actions { gap: 4px; }
+                .header-actions { flex-wrap: nowrap; width: auto; }
                 .header-btn, .btn-exit { gap: 3px; padding: 6px 7px; border-radius: 8px; font-size: 10px; }
                 .header-btn .notif-dot { width: 5px; height: 5px; }
                 .main { flex-direction: row; overflow: hidden; padding: 1px 12px 4px; gap: 8px; }
@@ -751,10 +777,19 @@ export default class HomeScenes extends DomSceneBase {
                     </div>
                 </div>
                 <div class="header-actions">
-                    <button class="header-btn" data-modal="config">Configuración</button>
-                    <button class="header-btn" data-modal="about">Acerca de</button>
-                    <button class="header-btn" data-modal="notifications">Notificaciones <span class="notif-dot"></span></button>
-                    <button type="button" class="btn-exit">Salir</button>
+                    <button class="header-btn" data-action="cards"><span aria-hidden="true">▤</span> Cartas</button>
+                    <button class="header-btn" data-action="shop"><span aria-hidden="true">✦</span> Tienda</button>
+                    <button class="header-btn" data-action="missions"><span aria-hidden="true">✧</span> Misiones</button>
+                    <button class="header-btn" data-action="notifications"><span aria-hidden="true">♧</span> Notificaciones <span class="notif-dot" ${unreadNotificationCount ? '' : 'hidden'}></span></button>
+                    <div class="more-menu">
+                        <button class="header-btn" type="button" data-action="more" aria-haspopup="true" aria-expanded="false"><span aria-hidden="true">Ⅲ</span> Más</button>
+                        <div class="more-options" role="menu">
+                            <button class="header-btn" data-action="mechanics" role="menuitem">Mecánicas</button>
+                            <button class="header-btn" data-action="settings" role="menuitem">Configuración</button>
+                            <button class="header-btn" data-action="about" role="menuitem">Acerca de</button>
+                            <button class="header-btn" data-action="logout" role="menuitem">Salir</button>
+                        </div>
+                    </div>
                 </div>
             </header>
 
@@ -806,17 +841,6 @@ export default class HomeScenes extends DomSceneBase {
                     <div class="cards">
                         ${cardsHtml}
                     </div>
-                    <div class="bottom-actions">
-                        <button class="bottom-btn cards" data-action="cards">
-                            <span class="btn-icon" aria-hidden="true">▤</span> Cartas
-                        </button>
-                        <button class="bottom-btn missions" data-action="missions">
-                            <span class="btn-icon" aria-hidden="true">✧</span> Misiones
-                        </button>
-                        <button class="bottom-btn shop" data-action="shop">
-                            <span class="btn-icon" aria-hidden="true">✦</span> Tienda
-                        </button>
-                    </div>
                 </section>
             </div>
         </div>
@@ -855,7 +879,7 @@ export default class HomeScenes extends DomSceneBase {
 
         // Efectos de sonido de clic en todos los elementos interactivos.
         try {
-            const clickables = node.querySelectorAll('.header-btn, .btn-exit, .bottom-btn, .btn-profile, .card');
+            const clickables = node.querySelectorAll('.header-btn, .btn-profile, .card');
             clickables.forEach(el => {
                 this.track(el, () => playSfx('click', this), 'pointerup');
             });
@@ -865,11 +889,12 @@ export default class HomeScenes extends DomSceneBase {
 
         // --- LÓGICA DE LOS BOTONES ---
         // EXIT BUTTON
-        const exitBtn = node.querySelector(".btn-exit");
-        if (exitBtn) this.track(exitBtn, (event) => {
+        const logoutBtn = node.querySelector('[data-action="logout"]');
+        if (logoutBtn) this.track(logoutBtn, (event) => {
             event.preventDefault();
             stopMusic();
             if (guestSession.isActive()) guestSession.end();
+            try { localStorage.removeItem('token'); localStorage.removeItem('user'); } catch { /* almacenamiento opcional */ }
             this.scene.start('LoginScene');
         }, 'click');
 
@@ -907,9 +932,12 @@ export default class HomeScenes extends DomSceneBase {
         });
 
         // Asignar acciones distintas por botón
-        const btnConfig = node.querySelector('[data-modal="config"]');
-        const btnAbout = node.querySelector('[data-modal="about"]');
-        const btnNotifications = node.querySelector('[data-modal="notifications"]');
+        const btnConfig = node.querySelector('[data-action="settings"]');
+        const btnAbout = node.querySelector('[data-action="about"]');
+        const btnNotifications = node.querySelector('[data-action="notifications"]');
+        const btnMechanics = node.querySelector('[data-action="mechanics"]');
+        const moreMenu = node.querySelector('.more-menu');
+        const moreButton = node.querySelector('[data-action="more"]');
         const btnProfile = node.querySelector('[data-action="profile"]');
         const btnCards = node.querySelector('[data-action="cards"]');
         const btnMissions = node.querySelector('[data-action="missions"]');
@@ -941,9 +969,30 @@ export default class HomeScenes extends DomSceneBase {
         if (btnAbout) this.track(btnAbout, () => {
             this.scene.start('AboutScene', { playerData: this.playerData });
         }, 'click');
-        if (btnNotifications) this.track(btnNotifications, () => {
-            openModal('Notificaciones',
-                '<p>No tienes notificaciones nuevas por ahora.</p><p style="color:rgba(255,255,255,0.6);">Cuando ganes batallas, completen misiones o haya eventos, lo verás aquí.</p>');
+        const renderNotifications = () => {
+            const messages = NotificationCenter.markAllRead(username);
+            const dot = btnNotifications?.querySelector('.notif-dot');
+            if (dot) dot.hidden = NotificationCenter.unreadCount(username) === 0;
+            if (!messages.length) {
+                openModal('Notificaciones', '<p>No tienes mensajes por ahora.</p>');
+                return;
+            }
+            const escape = (value) => String(value || '').replace(/[&<>"']/g, (char) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[char]));
+            openModal('Notificaciones', messages.map((item) => `<article class="notification-item"><strong>${escape(item.title || 'Mensaje')}</strong><p>${escape(item.message)}</p></article>`).join(''));
+        };
+        if (btnNotifications) this.track(btnNotifications, renderNotifications, 'click');
+        if (moreButton) this.track(moreButton, () => {
+            const isOpen = moreMenu?.hasAttribute('open');
+            if (!moreMenu) return;
+            moreMenu.toggleAttribute('open', !isOpen);
+            moreButton.setAttribute('aria-expanded', String(!isOpen));
+        }, 'click');
+        if (btnMechanics) this.track(btnMechanics, () => this.scene.start('MechanicsScene', { playerData: this.playerData }), 'click');
+        this.track(node, (event) => {
+            if (moreMenu && !moreMenu.contains(event.target)) {
+                moreMenu.removeAttribute('open');
+                moreButton?.setAttribute('aria-expanded', 'false');
+            }
         }, 'click');
 
         // Conectar acciones a las tarjetas
@@ -966,10 +1015,6 @@ export default class HomeScenes extends DomSceneBase {
                         return;
                     }
 
-                    if (idx === 2) {
-                        this.scene.start('MechanicsScene', { playerData: this.playerData });
-                        return;
-                    }
                 }, 'click');
             });
         } catch (e) {

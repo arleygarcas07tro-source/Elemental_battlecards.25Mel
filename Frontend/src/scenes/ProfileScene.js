@@ -1,7 +1,7 @@
 import { play as playSfx } from '../helpers/audioManager.js';
 import { getProfileStats } from '../helpers/playerProgress.js';
 import DomSceneBase from './ui/DomSceneBase.js';
-import { elementByKey, elementsNavHTML, energyParticlesHTML } from './ui/elementCatalog.js';
+import { elementByKey, energyParticlesHTML } from './ui/elementCatalog.js';
 import { ACHIEVEMENTS } from '../game/achievementsCatalog.js';
 
 export default class ProfileScene extends DomSceneBase {
@@ -45,8 +45,6 @@ export default class ProfileScene extends DomSceneBase {
         const xpPercent = Math.min(100, Math.round((player.xpActual / player.xpMaxima) * 100));
 
         const particles = energyParticlesHTML();
-
-        const elementsNavHtml = elementsNavHTML();
 
         const statsCards = [
             { icon: '🃏', title: 'Cartas coleccionadas', value: `${player.collectedCards} / ${player.collectedTotal}` },
@@ -184,7 +182,7 @@ export default class ProfileScene extends DomSceneBase {
                 filter: drop-shadow(0 0 8px rgba(255, 215, 90, 0.3));
             }
             .hud::before { top: 58px; left: 14px; border-right: none; border-bottom: none; }
-            .hud::after { bottom: 58px; right: 14px; border-left: none; border-top: none; }
+            .hud::after { bottom: 14px; right: 14px; border-left: none; border-top: none; }
 
             /* ---------- TOPBAR ---------- */
             .topbar {
@@ -246,6 +244,19 @@ export default class ProfileScene extends DomSceneBase {
                 transform: translateY(-2px);
                 background: linear-gradient(135deg, rgba(255, 215, 90, 0.24), rgba(255, 215, 90, 0.08));
                 box-shadow: 0 0 30px rgba(255, 215, 90, 0.22);
+            }
+            .top-actions { display: flex; align-items: center; gap: 10px; margin-left: auto; }
+            .top-actions .btn-home { margin-left: 0; }
+            .profile-top-button {
+                appearance: none;
+                border: 1px solid rgba(255, 215, 90, 0.4);
+                border-radius: 14px;
+                padding: 12px 20px;
+                color: #ffd75a;
+                background: linear-gradient(135deg, rgba(255, 215, 90, 0.14), rgba(255, 215, 90, 0.04));
+                box-shadow: 0 0 20px rgba(255, 215, 90, 0.16);
+                font: 600 14px Poppins, Arial, sans-serif;
+                cursor: default;
             }
 
             /* ---------- CUERPO ---------- */
@@ -751,7 +762,8 @@ export default class ProfileScene extends DomSceneBase {
                 .brand-kicker { display: none; }
                 .brand h1 { font-size: 22px; }
                 .brand-block p { display: none; }
-                .btn-home { padding: 7px 11px; font-size: 11px; border-radius: 10px; }
+                .top-actions { gap: 6px; }
+                .btn-home, .profile-top-button { padding: 7px 11px; font-size: 11px; border-radius: 10px; }
                 .profile-body { grid-template-columns: minmax(0, 1fr); grid-template-rows: auto minmax(0, 1fr); gap: 8px; padding: 4px 12px 8px; }
                 .profile-side { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; align-items: center; gap: 8px; padding: 7px 10px; border-radius: 14px; }
                 .avatar-wrap { min-width: 0; flex-direction: row; gap: 7px; }
@@ -770,11 +782,6 @@ export default class ProfileScene extends DomSceneBase {
                 .level-badge { flex-basis: 58px; width: 58px; height: 58px; }
                 .frase { margin-block: 8px; padding: 10px; }
                 .stats-grid, .logros-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
-                .bottom-nav { gap: 6px; padding: 3px 10px; }
-                .nav-elements { gap: 5px; }
-                .nav-orb { width: 25px; height: 25px; }
-                .nav-items { gap: 3px; }
-                .nav-item { min-height: 32px; padding: 5px 8px; font-size: 10px; }
             }
         </style>
 
@@ -800,7 +807,10 @@ export default class ProfileScene extends DomSceneBase {
                         <p>Tu identidad elemental, tus estadísticas y tus logros.</p>
                     </div>
                 </div>
-                <button class="btn-home" id="btn-home">🏠 Inicio</button>
+                <div class="top-actions">
+                    <button class="btn-home" id="btn-home">🏠 Inicio</button>
+                    <button class="profile-top-button" aria-current="page">👤 Perfil</button>
+                </div>
             </header>
 
             <main class="profile-body">
@@ -881,25 +891,11 @@ export default class ProfileScene extends DomSceneBase {
                 </section>
             </main>
 
-            <nav class="bottom-nav">
-                <div class="nav-elements">${elementsNavHtml}</div>
-                <div class="nav-items">
-                    <button class="nav-item" data-nav="home">🏠 Inicio</button>
-                    <button class="nav-item" data-nav="cards">🃏 Cartas</button>
-                    <button class="nav-item" data-nav="missions">🎯 Misiones</button>
-                    <button class="nav-item" data-nav="settings">⚙️ Configuración</button>
-                    <button class="nav-item active">👤 Perfil</button>
-                </div>
-            </nav>
         </div>`;
 
         const node = this.mountDOM(html, { flex: true });
 
         this.bind('#btn-home', () => this.scene.start('HomeScenes', { playerData: this.playerData }));
-        this.bind('[data-nav="home"]', () => this.scene.start('HomeScenes', { playerData: this.playerData }));
-        this.bind('[data-nav="cards"]', () => this.scene.start('CardsScene', { playerData: this.playerData }));
-        this.bind('[data-nav="missions"]', () => this.scene.start('MissionsScene', { playerData: this.playerData }));
-        this.bind('[data-nav="settings"]', () => this.scene.start('SettingsScene', { playerData: this.playerData }));
 
         // Al entrar, la barra llega al máximo y luego muestra el XP real.
         const xpFill = node.querySelector('#xp-fill');

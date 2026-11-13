@@ -12,7 +12,7 @@ const buildModels = require('../infrastructure/database/models');
 const SequelizeUserRepository = require('../infrastructure/repositories/SequelizeUserRepository');
 const SequelizePendingRegistrationRepository = require('../infrastructure/repositories/SequelizePendingRegistrationRepository');
 const BcryptPasswordHasher = require('../infrastructure/services/BcryptPasswordHasher');
-const BrevoApiEmailService = require('../infrastructure/services/BrevoApiEmailService');
+const SmtpEmailService = require('../infrastructure/services/SmtpEmailService');
 const JwtTokenService = require('../infrastructure/services/JwtTokenService');
 const AuthService = require('../domain/services/AuthService');
 const AuthController = require('../presentation/http/controllers/AuthController');
@@ -95,7 +95,7 @@ class AppComposer {
       const authService = new AuthService({
         userRepository,
         pendingRegistrationRepository,
-        emailService: new BrevoApiEmailService(this.config),
+        emailService: new SmtpEmailService(this.config),
         passwordHasher: new BcryptPasswordHasher(10),
         tokenService: new JwtTokenService(this.config.jwtSecret, { expiresIn: this.config.jwtExpiresIn }),
         logger: this.logger,

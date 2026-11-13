@@ -1,9 +1,8 @@
 /**
  * Reglas de restricción de ataque por nivel de carta.
  * Se encarga de las transiciones de estado puro (sin tocar Phaser):
- * - Ataques consecutivos (nivel 2 descansa un turno tras 2 ataques seguidos).
- * - Bloqueo por una ronda (nivel 3 descansa siempre tras atacar).
- * - Limpieza de estado al comenzar un turno propio.
+ * - Registra el turno del ataque sin imponer descansos por nivel.
+ * - El límite global de acciones por turno controla la frecuencia de ataque.
  *
  * El estado que gestiona se mantiene en el objeto visual de la carta:
  * lastAttackedTurn, consecutiveAttacks y blockedTurn.
@@ -19,19 +18,10 @@ export default class LevelAttackRule {
      * @returns {{ lastAttackedTurn: number, consecutiveAttacks: number, blockedTurn: number|null }}
      */
     static registerAttack({ level, nowTurn, lastAttackedTurn = null, consecutiveAttacks = 0 }) {
-        const newConsecutive = lastAttackedTurn === nowTurn - 1 ? consecutiveAttacks + 1 : 1;
-
-        let blockedTurn = null;
-        if (level === 2 && newConsecutive >= 2) {
-            blockedTurn = nowTurn + 1;
-        } else if (level === 3) {
-            blockedTurn = nowTurn + 1;
-        }
-
         return {
             lastAttackedTurn: nowTurn,
-            consecutiveAttacks: blockedTurn === null ? newConsecutive : 0,
-            blockedTurn
+            consecutiveAttacks: lastAttackedTurn === nowTurn - 1 ? consecutiveAttacks + 1 : 1,
+            blockedTurn: null
         };
     }
 

@@ -76,6 +76,11 @@ export default class LANEventRouter {
             case 'fuse_from_hand': return this._routeFuseFromHand(payload, isRemotePlayer, isOpponentAction);
             case 'attack': return this._routeAttack(payload, isRemotePlayer, isOpponentAction);
             case 'direct_attack': return this._routeDirectAttack(payload, isRemotePlayer, isOpponentAction);
+            case 'bomb_impact': return {
+                kind: 'bomb-impact',
+                ownerId: payload.targetSide === 'player' ? 'opponent' : 'player',
+                fieldIndex: payload.fieldIndex
+            };
             case 'game_over': return this._routeGameOver(payload);
             default: return null;
         }

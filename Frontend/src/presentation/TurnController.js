@@ -8,6 +8,7 @@ import {
 } from '../helpers/playerProgress.js';
 import { GAME_CONFIG } from '../helpers/constants.js';
 import { consumeShopPower } from '../helpers/shopApi.js';
+import NotificationCenter from '../helpers/notificationCenter.js';
 
 /**
  * Controlador del ciclo de la partida.
@@ -468,6 +469,7 @@ export default class TurnController {
 
         // Progreso real: cada victoria/derrota se cuenta y alimenta misiones y logros.
         const username = (playerData && playerData.username) || 'Jugador';
+        NotificationCenter.add(username, winner === 'player' ? 'Victoria' : winner === 'opponent' ? 'Partida finalizada' : 'Partida empatada', winner === 'player' ? 'Has ganado la partida. ¡Sigue jugando para avanzar!' : winner === 'opponent' ? 'Has perdido la partida. Vuelve a intentarlo para desbloquear el siguiente nivel.' : 'La partida terminó en empate.');
         const opponentType = this.ctx.isLAN ? 'lan' : 'bot';
         if (winner === 'player') {
             recordVictory(username, opponentType);

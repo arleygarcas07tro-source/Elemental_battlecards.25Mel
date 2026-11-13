@@ -3,6 +3,7 @@ import { getHighestUnlockedBotDifficulty, recordCollectedCard } from '../helpers
 import { GAME_CONFIG } from '../helpers/constants.js';
 import GameComposer from '../app/GameComposer.js';
 import BoardRenderer from '../presentation/BoardRenderer.js';
+import HandDealAnimator from '../presentation/HandDealAnimator.js';
 import CardInteraction from '../presentation/CardInteraction.js';
 import AttackController from '../presentation/AttackController.js';
 import BotTurnRunner from '../presentation/BotTurnRunner.js';
@@ -11,10 +12,12 @@ import TurnController from '../presentation/TurnController.js';
 import { createArena } from '../helpers/battlefieldArt.js';
 import { createBattleLayout } from '../helpers/battleLayout.js';
 import BattlefieldBombs from '../helpers/battlefieldBombs.js';
+import BombImpactController from '../presentation/BombImpactController.js';
 import { getGemRequirements } from '../game/objectivesCatalog.js';
 import { getGameMode } from '../game/gameModes.js';
 import { getBattleBackgroundTint, getPurchasedPowerCharges } from '../helpers/shopApi.js';
 import LANChatWidget from '../helpers/LANChatWidget.js';
+import { resolvePlayerData } from '../helpers/playerData.js';
 
 /**
  * Escena principal del juego de cartas.
@@ -52,6 +55,12 @@ export default class GameScene extends Phaser.Scene {
         // jugadores y el flujo de turnos; la escena solo los referencia.
         this.match = null;
         this.turn = null; // Alias de this.match.turn para el resto de la escena.
+        this.initialDealComplete = false;
+        this.localDealReady = false;
+        this.remoteDealReady = false;
+        this.autoStartAfterDeal = false;
+        this._pendingServerGameStart = false;
+        this._pendingServerGameStartData = null;
     }
 
     /**
@@ -61,7 +70,7 @@ export default class GameScene extends Phaser.Scene {
     init(data) {
         data = data || {};
         // data puede contener: playerData, socket, isLAN, roomCode, vsBot, playerRole, gameStartData, botDifficulty
-        this.playerData = data.playerData || data;
+        this.playerData = resolvePlayerData(data.playerData || data);
         this.purchasedPowerCharges = getPurchasedPowerCharges(this.playerData.username);
         this.socket = data.socket || null;
         this.isLAN = !!data.isLAN;
@@ -70,6 +79,13 @@ export default class GameScene extends Phaser.Scene {
         this.gameStartData = data.gameStartData || null;
         this.earlyGameStart = data.earlyGameStart || null;
         this.vsBot = !!data.vsBot;
+        this.initialDealComplete = false;
+        this.localDealReady = false;
+        this.remoteDealReady = false;
+        this.autoStartAfterDeal = this.vsBot && !this.isLAN;
+        this._pendingServerGameStart = false;
+        this._pendingServerGameStartData = null;
+        this.handDealAnimator = null;
         this.botDifficulty = Math.max(1, Math.min(10, Math.round(Number(data.botDifficulty) || 3)));
         this.blockedBotDifficulty = this.vsBot
             && this.botDifficulty > getHighestUnlockedBotDifficulty(this.playerData?.username || 'Jugador');
@@ -78,6 +94,7 @@ export default class GameScene extends Phaser.Scene {
         this.gemRequirements = this.gameMode.usesGems
             ? getGemRequirements(this.bot.difficulty)
             : null;
+        this.bot.setGemFocus(this.bot.difficulty >= 5 && this.gameMode.usesGems);
         console.log('GameScene iniciada con los datos del jugador:', this.playerData);
         console.log('Modo LAN:', this.isLAN, 'Rol:', this.playerRole);
         console.log('Dificultad del bot:', this.bot.difficulty, '(1=Muy FÃ¡cil, 10=Mito)');
@@ -124,6 +141,7 @@ export default class GameScene extends Phaser.Scene {
             console.warn('[GameScene] Dificultad bloqueada: primero debes ganar el nivel anterior.', {
                 requestedDifficulty: this.botDifficulty
             });
+            this.events.emit('board-load-blocked');
             this.scene.start('DifficultySelectScene', { playerData: this.playerData });
             return;
         }
@@ -241,6 +259,7 @@ export default class GameScene extends Phaser.Scene {
             opponentHand: this.cardOpponentHandSize,
             layout: this.layout
         });
+        this.handDealAnimator = new HandDealAnimator(this, this.layout);
         const interaction = new CardInteraction(this.ctx);
         const attackController = new AttackController(this.ctx);
         const botRunner = new BotTurnRunner(this.ctx);
@@ -252,6 +271,8 @@ export default class GameScene extends Phaser.Scene {
         this.ctx.botRunner = botRunner;
         this.ctx.remoteApplier = remoteApplier;
         this.ctx.turnController = turnController;
+        this.bombImpactController = new BombImpactController(this.ctx);
+        this.ctx.bombImpactController = this.bombImpactController;
 
         // Puente de eventos del motor (dominio) hacia los eventos de la escena,
         // que es donde UIScene escucha. La escena solo reenvÃ­a, no decide reglas.
@@ -282,6 +303,17 @@ export default class GameScene extends Phaser.Scene {
             this.ctx.lanRouter = this.lanRouter;
             this.lan.onGameEvent((payload) => {
                 try {
+                    if (payload?.type === 'initial_deal_ready') {
+                        this.remoteDealReady = true;
+                        this.events.emit('lan-deal-ready');
+                        if (this._pendingServerGameStart && this.initialDealComplete) {
+                            const pendingData = this._pendingServerGameStartData;
+                            this._pendingServerGameStart = false;
+                            this._pendingServerGameStartData = null;
+                            this._handleServerGameStart(pendingData);
+                        }
+                        return;
+                    }
                     this.ctx.remoteApplier.handle(payload);
                     if (this.ctx.turn.state === 'game-over') return;
                     const winner = this.ctx.turnController.checkVictoryConditions();
@@ -348,7 +380,18 @@ export default class GameScene extends Phaser.Scene {
         renderer.createBoardDecor();
 
         // Bombardeo ambiental puramente decorativo sobre el campo.
-        this.bombs = new BattlefieldBombs(this, this.layout).start();
+        this.bombs = new BattlefieldBombs(this, this.layout, {
+            onImpact: (ownerId, fieldIndex) => {
+                if (this.isLAN) {
+                    if (this.playerRole === 'host') {
+                        this.ctx.lan?.emitGameEvent({ type: 'bomb_impact', targetSide: ownerId, fieldIndex });
+                        this.bombImpactController.apply(ownerId, fieldIndex);
+                    }
+                    return;
+                }
+                this.bombImpactController.apply(ownerId, fieldIndex);
+            }
+        }).start();
         this.triggerLevel2BombBarrage = (info = {}) => {
             if (this.bombs) {
                 this.bombs.barrage({ count: 30, interval: 70 });
@@ -386,7 +429,7 @@ export default class GameScene extends Phaser.Scene {
 
         // ---------- ZONA DE MANO DEL JUGADOR (4 espacios) ----------
         renderer.createSlotsRow(renderer.layout.playerHandY, 'player-slots');
-        renderer.createCardsRow(renderer.layout.playerHandY, 'player-cards', this.player.hand);
+        renderer.createCardsRow(renderer.layout.playerHandY, 'player-cards', this.player.hand, { faceDown: true });
 
         // Avisar a la UI que la escena se creÃ³ exitosamente
         this.events.emit('board-ready');
@@ -405,9 +448,44 @@ export default class GameScene extends Phaser.Scene {
         this.events.off('start-game');
         this.events.on('start-game', () => this._requestMatchStart());
 
+        this.events.off('initial-deal-complete');
+        this.initialDealPromise = this.handDealAnimator.dealInitialHands({
+            playerCards: this['player-cards'] || [],
+            opponentCards: this['opponent-cards'] || [],
+        }).catch((error) => {
+            console.warn('[GameScene] No se pudo completar la animación de reparto:', error.message || error);
+            (this['player-cards'] || []).forEach((card) => {
+                if (!card?.active) return;
+                if (card.isFaceDown) card.reveal();
+                card.setData('isRevealed', true);
+                card.setAlpha(1);
+            });
+        }).then(() => {
+            if (!this.scene.isActive('GameScene')) return;
+            this.initialDealComplete = true;
+            this.localDealReady = true;
+            this.events.emit('initial-deal-complete');
+
+            if (this.isLAN) {
+                this.lan?.emitGameEvent({ type: 'initial_deal_ready' });
+            }
+
+            if (this._pendingServerGameStart && (!this.isLAN || this.remoteDealReady)) {
+                const pendingData = this._pendingServerGameStartData;
+                this._pendingServerGameStart = false;
+                this._pendingServerGameStartData = null;
+                this._handleServerGameStart(pendingData);
+            } else if (this.autoStartAfterDeal) {
+                this._requestMatchStart();
+            }
+        });
+
         // Cleanup al apagar la escena: evitar listeners y escenas hijas corriendo.
-        this.events.off('shutdown');
-        this.events.on('shutdown', () => {
+        // Reemplazamos solo el listener de limpieza de esta escena. Un `off`
+        // general también quitaría el listener que usa HandDealAnimator para
+        // cancelar sus tweens si se sale del nivel durante el reparto.
+        if (this._onGameShutdown) this.events.off('shutdown', this._onGameShutdown);
+        this._onGameShutdown = () => {
             // remover listeners propios
             this.events.off('start-game');
             this.events.off('request-essence-power');
@@ -427,7 +505,8 @@ export default class GameScene extends Phaser.Scene {
             if (this.scene.isActive('UIScene')) this.scene.stop('UIScene');
             // destruir temporizador si sigue activo
             this.ctx.turnController.destroyTimer();
-        });
+        };
+        this.events.on('shutdown', this._onGameShutdown);
 
         // Ya no hay botÃ³n "Terminar turno": el turno termina automÃ¡ticamente
         // al ejecutar una acciÃ³n o por timeout. No registramos listener 'end-player-turn'.
@@ -438,7 +517,7 @@ export default class GameScene extends Phaser.Scene {
      * ambos esperan el game_start validado por el servidor.
      */
     _requestMatchStart() {
-        if (!this.ctx || this.ctx.turn.state !== 'pre-start') return;
+        if (!this.ctx || !this.initialDealComplete || this.ctx.turn.state !== 'pre-start') return;
 
         if (!this.isLAN) {
             this.ctx.turnController.beginMatch();
@@ -477,6 +556,11 @@ export default class GameScene extends Phaser.Scene {
      */
     _handleServerGameStart(data) {
         if (!this.ctx || this.ctx.turn.state !== 'pre-start') return;
+        if (!this.initialDealComplete || (this.isLAN && !this.remoteDealReady)) {
+            this._pendingServerGameStart = true;
+            this._pendingServerGameStartData = data || null;
+            return;
+        }
         this._startRequestPending = false;
         this.gameStartData = data || null;
         this.ctx.gameStartData = this.gameStartData;
@@ -527,7 +611,18 @@ export default class GameScene extends Phaser.Scene {
 
         if (this.bombs) {
             this.bombs.stop();
-            this.bombs = new BattlefieldBombs(this, this.layout).start();
+            this.bombs = new BattlefieldBombs(this, this.layout, {
+                onImpact: (ownerId, fieldIndex) => {
+                    if (this.isLAN) {
+                        if (this.playerRole === 'host') {
+                            this.ctx.lan?.emitGameEvent({ type: 'bomb_impact', targetSide: ownerId, fieldIndex });
+                            this.bombImpactController.apply(ownerId, fieldIndex);
+                        }
+                        return;
+                    }
+                    this.bombImpactController.apply(ownerId, fieldIndex);
+                }
+            }).start();
         }
 
         this.scene.get('UIScene')?.events?.emit('layout-resized', this.layout);

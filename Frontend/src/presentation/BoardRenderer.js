@@ -230,6 +230,10 @@ export default class BoardRenderer {
         if (!slot) return false;
 
         cardObject.setPosition(slot.x, slot.y);
+        // Las animaciones de ataque/revelado modifican escalas por eje. Al
+        // volver al campo, normalizamos el tamaño para impedir que una escala
+        // temporal deje la carta deformada.
+        cardObject.setDisplaySize(this.cardFieldSize.width, this.cardFieldSize.height);
         cardObject.setData('startPosition', { x: slot.x, y: slot.y });
         return true;
     }
@@ -286,7 +290,7 @@ export default class BoardRenderer {
     }
 
     // Crear fila de cartas
-    createCardsRow(y, name, hand) {
+    createCardsRow(y, name, hand, options = {}) {
         const cards = [];
         const numCards = hand.length;
         const isPlayerHand = name === 'player-cards';
@@ -304,7 +308,7 @@ export default class BoardRenderer {
 
             let card;
             if (name === 'player-cards') {
-                card = this.createPlayerCard(positionsX[i], y, cardData);
+                card = this.createPlayerCard(positionsX[i], y, cardData, options);
             } else {
                 card = this.createOpponentCard(positionsX[i], y, cardData);
             }
@@ -316,11 +320,11 @@ export default class BoardRenderer {
     }
 
     // Crear carta del jugador
-    createPlayerCard(x, y, cardData) {
-        const card = new Card(this.scene, x, y, cardData, false); // Crear la carta en su posición final
+    createPlayerCard(x, y, cardData, { faceDown = false } = {}) {
+        const card = new Card(this.scene, x, y, cardData, faceDown);
         card.setDisplaySize(this.cardHandSize.width, this.cardHandSize.height); // Tamaño unificado
         card.setData('startPosition', { x, y });
-        card.setData('isRevealed', false);
+        card.setData('isRevealed', !faceDown);
         card.setData('isCardOnField', false);
         card.on('pointerdown', () => this.ctx.interaction.onCardClicked(card));
 
@@ -431,7 +435,7 @@ export default class BoardRenderer {
     }
 
     /**
-     * Revela una carta del oponente, cambiando su textura y aplicando una animación.
+     * Revela una carta del oponente sin cambiar el tamaño del slot.
      * @param {Card} cardObject La carta del oponente a revelar.
      */
     revealOpponentCard(cardObject) {
@@ -441,37 +445,21 @@ export default class BoardRenderer {
         }
 
         const cardData = cardObject.getData('cardData');
-        const textureName = `card-${cardData.type}-${cardData.level}`;
+        const targetWidth = this.cardFieldSize.width;
+        const targetHeight = this.cardFieldSize.height;
 
         console.log('[GameScene] Revelando carta del oponente', { cardId: cardData.id, type: cardData.type, level: cardData.level });
 
         // Marcamos la carta como revelada para no volver a hacerlo.
         cardObject.setData('isRevealed', true);
-
-        // Animación de revelación: un rápido encogimiento y expansión para simular un "giro".
-        this.scene.tweens.add({
-            targets: cardObject,
-            scaleX: 0, // Encogemos en el eje X hasta 0
-            scaleY: cardObject.scaleY * 1.1, // La hacemos un poco más alta para el efecto
-            duration: 100,
-            ease: 'Power1',
-            onComplete: () => {
-                cardObject.setTexture(textureName); // Cambiamos la textura justo a la mitad de la animación
-
-                // --- ¡CORRECCIÓN CLAVE! ---
-                // Primero, forzamos el tamaño visual correcto con la nueva textura.
-                // Esto recalcula internamente las escalas necesarias.
-                cardObject.setDisplaySize(this.cardFieldSize.width, this.cardFieldSize.height);
-
-                // Luego, animamos la expansión de vuelta a su escala correcta (la que calculó setDisplaySize).
-                // En lugar de animar a '1', animamos al valor de escala que ya tiene el objeto.
-                this.scene.tweens.add({
-                    targets: cardObject,
-                    scaleX: cardObject.scaleX, // Restauramos la escala X correcta
-                    scaleY: cardObject.scaleY, // Restauramos la escala Y correcta
-                    duration: 100, ease: 'Power1' });
-            }
-        });
+        // Revelar no debe deformar el sprite. Se cambia la cara y se mantiene
+        // el tamaño del slot durante ataques y daños recibidos.
+        if (typeof cardObject.reveal === 'function') {
+            cardObject.reveal();
+        } else {
+            cardObject.setTexture(`card-${cardData.type}-${cardData.level}`);
+        }
+        cardObject.setDisplaySize(targetWidth, targetHeight);
     }
 
     /**

@@ -4,13 +4,10 @@ import { ensureFxTextures } from './cardFx.js';
 import { play as playSfx } from './audioManager.js';
 
 /**
- * Bombardeo ambiental del campo de batalla (solo presentación).
+ * Bombardeo aleatorio en ambos campos.
  *
- * Responsabilidad agregada: lanzar bombas decorativas sobre las filas del
- * campo, animar su caída y detonarlas con explosiones, humo y escombros. Es
- * puramente visual: no consulta ni muta el estado de la partida, no destruye
- * cartas y no afecta turnos, reglas ni sincronización LAN. La escena solo
- * arranca y detiene el servicio.
+ * La clase presenta la caída y comunica el slot impactado al controlador
+ * inyectado; el cálculo de daño y el ciclo de vida de la carta quedan fuera.
  */
 
 const BOMB_TEXTURE = 'fx-bomb';
@@ -30,7 +27,8 @@ export default class BattlefieldBombs {
         firstDelay = 2600,
         minDelay = 4200,
         maxDelay = 7600,
-        depth = 30
+        depth = 30,
+        onImpact = null
     } = {}) {
         this.scene = scene;
         this.layout = layout;
@@ -38,6 +36,7 @@ export default class BattlefieldBombs {
         this.minDelay = minDelay;
         this.maxDelay = Math.max(minDelay, maxDelay);
         this.depth = depth;
+        this.onImpact = onImpact;
 
         this._timer = null;
         this._running = false;
@@ -104,11 +103,14 @@ export default class BattlefieldBombs {
         const xs = Array.isArray(this.layout.fieldRow) && this.layout.fieldRow.length
             ? this.layout.fieldRow
             : this._fallbackRow();
-        const x = Phaser.Utils.Array.GetRandom(xs);
-        const rows = [this.layout.opponentFieldY, this.layout.playerFieldY]
-            .filter((y) => typeof y === 'number');
-        const y = rows.length ? Phaser.Utils.Array.GetRandom(rows) : this.scene.scale.height / 2;
-        return { x, y };
+        const fieldIndex = Phaser.Math.Between(0, xs.length - 1);
+        const x = xs[fieldIndex];
+        const rows = [
+            { ownerId: 'opponent', y: this.layout.opponentFieldY },
+            { ownerId: 'player', y: this.layout.playerFieldY }
+        ].filter((row) => typeof row.y === 'number');
+        const row = rows.length ? Phaser.Utils.Array.GetRandom(rows) : { ownerId: 'player', y: this.scene.scale.height / 2 };
+        return { x, y: row.y, ownerId: row.ownerId, fieldIndex };
     }
 
     _fallbackRow() {
@@ -123,7 +125,8 @@ export default class BattlefieldBombs {
     _dropBomb() {
         if (!this._running) return;
 
-        const { x: targetX, y: targetY } = this._pickTarget();
+        const target = this._pickTarget();
+        const { x: targetX, y: targetY } = target;
         const startX = targetX + Phaser.Math.Between(-26, 26);
         const startY = -90;
         const depth = this.depth;
@@ -180,6 +183,7 @@ export default class BattlefieldBombs {
                 try { warning.destroy(); } catch { /* ignorar */ }
 
                 this._explode(targetX, targetY);
+                this.onImpact?.(target.ownerId, target.fieldIndex, targetX, targetY);
                 this._schedule();
             }
         });

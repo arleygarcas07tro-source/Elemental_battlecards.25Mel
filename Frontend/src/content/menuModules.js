@@ -1,6 +1,6 @@
 /**
  * Módulos del menú principal (contenido estático de presentación).
- * Datos de las 3 tarjetas del panel de navegación de HomeScenes.
+ * Datos de las tarjetas principales del panel de navegación de HomeScenes.
  */
 
 export const MENU_MODULES = [
@@ -19,13 +19,5 @@ export const MENU_MODULES = [
         image: "/assets/images/mod%C3%BAlos%20menuprincipal/juego%20en%20linea.jpeg",
         accent: "rgba(168, 130, 255, 0.20)",
         glow: "rgba(168, 130, 255, 0.35)"
-    },
-    {
-        eyebrow: 'Aprende',
-        title: 'Mecánicas',
-        desc: 'Consulta las reglas, ventajas y estrategias del juego.',
-        image: "/assets/images/mod%C3%BAlos%20menuprincipal/mecanicas%20fondo.jpeg",
-        accent: "rgba(201, 170, 92, 0.20)",
-        glow: "rgba(201, 170, 92, 0.35)"
     }
 ];

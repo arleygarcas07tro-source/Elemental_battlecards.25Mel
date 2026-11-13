@@ -13,8 +13,9 @@ class NodemailerEmailService extends IEmailService {
   }
 
   async sendVerificationCode({ email, username, code }) {
-    if (!this.config.emailUser || !this.config.emailPass) {
-      throw new AppError('El envío de correos no está configurado en el servidor.', 503);
+    if (!this.config.emailHost || !this.config.emailPort || !this.config.emailUser
+      || !this.config.emailPass || !this.config.emailFrom) {
+      throw new AppError('El envío SMTP no está configurado en el servidor.', 503);
     }
 
     const port = this.config.emailPort;

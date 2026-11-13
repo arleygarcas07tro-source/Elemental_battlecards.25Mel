@@ -30,6 +30,13 @@ export default class CardInteraction {
      * @param {object} clickedCard El objeto de la carta que ha sido clicada.
      */
     onCardClicked(clickedCard) {
+        const { turn } = this.ctx;
+        if (turn.blockingAnimations > 0) return;
+        if (turn.state !== 'player-turn' || turn.playerActionsLeft <= 0) {
+            this.deselectCard(false);
+            return;
+        }
+
         // Evitar seleccionar cartas del oponente directamente.
         const clickedIsOpponent = !!clickedCard.getData('isOpponentCard');
 

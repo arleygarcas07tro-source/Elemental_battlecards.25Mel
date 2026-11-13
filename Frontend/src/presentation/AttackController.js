@@ -27,6 +27,9 @@ export default class AttackController {
         // animación bloqueante en curso.
         if (!this.ctx.turnController.canPlayerActNow()) {
             console.log('[GameScene] No puedes gastar una acción ahora mismo.');
+            if (turn.state !== 'player-turn' || turn.playerActionsLeft <= 0) {
+                this.ctx.interaction.deselectCard(false);
+            }
             return;
         }
 
@@ -34,6 +37,10 @@ export default class AttackController {
         const blocked = attackingCardObject.getData('blockedTurn');
         if (blocked === turn.playerTurnNumber) {
             console.log('[GameScene] Esta carta está descansando este turno (restricción por nivel).');
+            this.scene.events.emit('gameplay-message', 'Esta carta debe descansar este turno. Elige otra para atacar.');
+            if (this.ctx.interaction.selectedCard === attackingCardObject) {
+                this.ctx.interaction.deselectCard(false);
+            }
             return;
         }
 
@@ -88,12 +95,19 @@ export default class AttackController {
         // animación bloqueante en curso.
         if (!this.ctx.turnController.canPlayerActNow()) {
             console.log('[GameScene] No puedes gastar una acción ahora mismo.');
+            if (turn.state !== 'player-turn' || turn.playerActionsLeft <= 0) {
+                this.ctx.interaction.deselectCard(false);
+            }
             return;
         }
 
         const blocked = attackingCardObject.getData('blockedTurn');
         if (blocked === turn.playerTurnNumber) {
             console.log('[GameScene] Esta carta está descansando este turno (restricción por nivel).');
+            this.scene.events.emit('gameplay-message', 'Esta carta debe descansar este turno. Elige otra para atacar.');
+            if (this.ctx.interaction.selectedCard === attackingCardObject) {
+                this.ctx.interaction.deselectCard(false);
+            }
             return;
         }
 
@@ -141,22 +155,21 @@ export default class AttackController {
 
         // Evitar el "lift" de selección en curso.
         this.scene.tweens.killTweensOf(attackingCardObject);
+        // Limpiar cualquier escala visual residual antes del ataque. La carta
+        // y su marco ornamental deben conservar siempre la proporción del slot.
+        attackingCardObject.setDisplaySize(renderer.cardFieldSize.width, renderer.cardFieldSize.height);
 
         const targetX = target.x;
         const targetY = target.y;
         const homePosition = attackingCardObject.getData('startPosition')
             || { x: attackingCardObject.x, y: attackingCardObject.y };
-        const baseScaleX = attackingCardObject.scaleX;
-        const baseScaleY = attackingCardObject.scaleY;
         const defenderCard = (target && typeof target.getData === 'function') ? target : null;
 
-        // Fase 1 — lanzamiento: el atacante se estira y vuela al objetivo.
+        // Fase 1 — lanzamiento: el atacante vuela al objetivo sin deformarse.
         this.scene.tweens.add({
             targets: attackingCardObject,
             x: targetX,
             y: targetY,
-            scaleX: baseScaleX * 1.18,
-            scaleY: baseScaleY * 0.9,
             duration: 120,
             ease: 'Sine.easeIn',
             onComplete: () => {
@@ -178,7 +191,7 @@ export default class AttackController {
                     });
                 }
 
-                // Fase 3 — retorno del atacante a su posición y escala.
+                // Fase 3 — retorno del atacante a su posición original.
                 // El final del ataque debe ejecutarse SOLO una vez y SIEMPRE:
                 // si el atacante se destruye a mitad de secuencia, Phaser cancela
                 // el onComplete y el bloqueo quedaría atascado (pantalla congelada).
@@ -226,8 +239,6 @@ export default class AttackController {
                     targets: attackingCardObject,
                     x: homePosition.x,
                     y: homePosition.y,
-                    scaleX: baseScaleX,
-                    scaleY: baseScaleY,
                     duration: 130,
                     ease: 'Power2',
                     onComplete: finalizeAttack

@@ -86,49 +86,110 @@
            #game-container la muestra y main.js la elimina cuando Phaser está listo. */
         #splash-screen {
             position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background:
-                radial-gradient(circle at 50% 40%, #3a2a4a 0%, #221a30 45%, #160f20 100%);
+            inset: 0;
             display: flex;
             flex-direction: column;
             justify-content: center;
             align-items: center;
+            overflow: hidden;
             z-index: 999;
             pointer-events: none;
+            opacity: 0;
+            background: #050812 url('/assets/images/pantalla%20de%20carga/pantalla%20de%20carga.jpeg') center / cover no-repeat;
+            animation: splash-arrive 0.3s ease 0.48s forwards;
         }
-        #splash-screen .splash-title {
-            color: #f2e9ff;
-            font-size: clamp(20px, 6vw, 44px);
-            font-weight: 700;
-            letter-spacing: 0.08em;
-            text-transform: uppercase;
-            text-shadow: 0 2px 12px rgba(0, 0, 0, 0.55);
-            margin: 0 0 18px;
+        #splash-screen::before,
+        #splash-screen::after {
+            content: "";
+            position: absolute;
+            inset: 0;
+            pointer-events: none;
         }
-        #splash-screen .splash-spinner {
-            width: clamp(34px, 8vw, 56px);
-            height: clamp(34px, 8vw, 56px);
+        #splash-screen::before {
+            background: linear-gradient(180deg, rgba(3, 7, 16, 0.36), rgba(3, 7, 16, 0.66) 60%, rgba(3, 7, 16, 0.84));
+        }
+        #splash-screen::after {
+            inset: 24% 22%;
+            background: radial-gradient(ellipse, rgba(90, 196, 218, 0.14), transparent 68%);
+            filter: blur(12px);
+        }
+        #splash-screen .splash-logo {
+            position: relative;
+            z-index: 1;
+            width: min(58vw, 430px);
+            height: auto;
+            margin: 0 0 20px;
+            filter: drop-shadow(0 0 22px rgba(223, 190, 113, 0.34));
+            animation: splash-breathe 2.8s ease-in-out infinite;
+        }
+        #splash-screen .splash-subtitle {
+            position: relative;
+            z-index: 1;
+            margin: 0 0 19px;
+            color: #e6d6ad;
+            font: 600 clamp(12px, 2vw, 16px)/1.4 Georgia, 'Times New Roman', serif;
+            letter-spacing: 0.18em;
+            text-align: center;
+            text-shadow: 0 2px 12px #000;
+        }
+        #splash-screen .splash-orbit {
+            position: relative;
+            z-index: 1;
+            width: clamp(48px, 8vw, 66px);
+            height: clamp(48px, 8vw, 66px);
+            border: 1px solid rgba(222, 190, 119, 0.48);
             border-radius: 50%;
-            border: 4px solid rgba(242, 233, 255, 0.25);
-            border-top-color: #f2e9ff;
-            animation: splash-spin 0.9s linear infinite;
+            box-shadow: 0 0 24px rgba(75, 190, 211, 0.12), inset 0 0 18px rgba(75, 190, 211, 0.11);
+            animation: splash-spin 11s linear infinite;
         }
+        #splash-screen .splash-orbit::before,
+        #splash-screen .splash-orbit::after {
+            content: "";
+            position: absolute;
+            inset: 8px -5px;
+            border: 1px solid rgba(89, 207, 224, 0.45);
+            border-radius: 50%;
+            transform: rotate(58deg);
+        }
+        #splash-screen .splash-orbit::after {
+            transform: rotate(-58deg);
+            border-color: rgba(224, 134, 83, 0.42);
+        }
+        #splash-screen .splash-orbit span {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            width: 8px;
+            height: 8px;
+            margin: -4px;
+            border-radius: 50%;
+            background: #69d7ec;
+            box-shadow: 0 0 12px currentColor;
+            color: #69d7ec;
+        }
+        #splash-screen .splash-orbit span:nth-child(1) { transform: translateY(-32px); }
+        #splash-screen .splash-orbit span:nth-child(2) { transform: rotate(120deg) translateY(-32px); background: #f38b59; color: #f38b59; }
+        #splash-screen .splash-orbit span:nth-child(3) { transform: rotate(240deg) translateY(-32px); background: #a6d881; color: #a6d881; }
         #splash-screen.fade-out {
             opacity: 0;
-            transition: opacity 0.4s ease;
+            animation: none;
+            transition: opacity 0.35s ease;
         }
         @keyframes splash-spin {
             to {
                 transform: rotate(360deg);
             }
         }
+        @keyframes splash-arrive {
+            to { opacity: 1; }
+        }
+        @keyframes splash-breathe {
+            0%, 100% { transform: scale(0.985); }
+            50% { transform: scale(1.015); }
+        }
         @media (prefers-reduced-motion: reduce) {
-            #splash-screen .splash-spinner {
-                animation-duration: 2.5s;
-            }
+            #splash-screen .splash-logo,
+            #splash-screen .splash-orbit { animation: none; }
         }
     </style>
 </head>
@@ -136,8 +197,9 @@
 
     <div id="game-container">
         <div id="splash-screen" aria-hidden="true">
-            <p class="splash-title">Elemental Battlecards</p>
-            <div class="splash-spinner"></div>
+            <img class="splash-logo" src="/assets/images/Logotipoletras.png" alt="" />
+            <p class="splash-subtitle">RESTAURANDO TU AVENTURA</p>
+            <div class="splash-orbit"><span></span><span></span><span></span></div>
         </div>
     </div>
     <div id="orientation-screen" role="status" aria-live="polite">

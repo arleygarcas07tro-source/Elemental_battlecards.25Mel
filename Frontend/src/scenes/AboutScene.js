@@ -606,16 +606,12 @@ export default class AboutScene extends DomSceneBase {
 
             <nav class="bottom-nav">
                 <div class="nav-elements">${elementsNavHtml}</div>
-                <div class="nav-items">
-                    <button class="nav-item" data-nav="cards">🃏 Cartas</button>
-                </div>
             </nav>
         </div>`;
 
         const node = this.mountDOM(html, { flex: true });
 
         this.bind('[data-nav="home"]', () => this.scene.start('HomeScenes', { playerData: this.playerData }));
-        this.bind('[data-nav="cards"]', () => this.scene.start('CardsScene', { playerData: this.playerData }));
 
         // Secciones plegables.
         const heads = node.querySelectorAll('.sec-head');

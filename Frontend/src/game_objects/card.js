@@ -56,6 +56,8 @@ export default class Card extends Phaser.GameObjects.Sprite {
         this.healthBar = null;
         this.healthText = null;
         this.renderedHealth = null;
+        this.healthTweenValue = { value: this.health };
+        this.healthTweenTarget = this.health;
 
         // Asignamos un nombre al GameObject para facilitar la depuración
         // y añadimos el `instanceId` también como metadata para búsquedas.
@@ -337,7 +339,19 @@ export default class Card extends Phaser.GameObjects.Sprite {
     syncHealthIndicator() {
         if (!this.healthBar || !this.healthBar.scene || !this.healthText || !this.healthText.scene) return;
 
-        const healthPercent = CardHealthService.percent(this.cardData);
+        const targetHealthPercent = CardHealthService.percent(this.cardData);
+        if (this.healthTweenTarget !== targetHealthPercent) {
+            this.healthTweenTarget = targetHealthPercent;
+            this.scene.tweens.killTweensOf(this.healthTweenValue);
+            this.scene.tweens.add({
+                targets: this.healthTweenValue,
+                value: targetHealthPercent,
+                duration: 420,
+                ease: 'Sine.easeOut',
+                onUpdate: () => this.syncHealthIndicator()
+            });
+        }
+        const healthPercent = Math.round(this.healthTweenValue.value);
         const cx = this.x;
         const cy = this.y;
         const u = Math.min(this.displayWidth / 132, this.displayHeight / 180);

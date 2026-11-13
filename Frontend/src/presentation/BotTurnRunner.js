@@ -169,11 +169,15 @@ export default class BotTurnRunner {
     }
 
     /**
-     * Ejecuta la fusión de campo decidida por el bot.
-     * @param {object} plan Plan { kind: 'fusion', indices: number[] }.
+     * Ejecuta una fusión decidida por el bot, desde el campo o la mano.
+     * @param {object} plan Plan de fusión del BotAI.
      * @returns {boolean} true si la fusión se ejecutó.
      */
     executeFusion(plan) {
+        if (Number.isInteger(plan.fieldIndex) && Number.isInteger(plan.handIndex)) {
+            return this.executeHandFusion(plan);
+        }
+
         const { opponent, renderer, debugSync } = this.ctx;
         if (debugSync) console.log('[GameScene][debug] Oponente BOT fusionando campo', { indices: plan.indices, timestamp: Date.now() });
         const [idxA, idxB] = plan.indices;
@@ -205,11 +209,45 @@ export default class BotTurnRunner {
         if (existing && existing.getData('isOpponentCard')) existing.destroy();
         const slotObj = this.scene['opponent_battle_slots'][targetIndex];
         const fusedObj = renderer.createFieldCard(slotObj, res.newCard, { isOpponent: true, revealed: true, fieldIndex: targetIndex });
-        try { fusedObj.setTexture(`card-${res.newCard.type}-${res.newCard.level}`); } catch {}
+        fusedObj.reveal();
         renderer.refreshOpponentHand(opponent.hand);
         renderer.updateDeckCounts(this.ctx.player.deck.getCardsCount(), opponent.deck.getCardsCount());
         // Una fusión cuenta como UNA acción del turno del bot.
         this.ctx.turn.consumeOpponentAction();
+        this.continueTurn();
+        return true;
+    }
+
+    /** Fusiona una carta de la mano del bot con una carta de su campo. */
+    executeHandFusion(plan) {
+        const { opponent, renderer, turn, debugSync } = this.ctx;
+        const fieldCard = opponent.field.get(plan.fieldIndex);
+        const handCard = opponent.hand[plan.handIndex];
+        if (!fieldCard || !handCard) return false;
+
+        if (debugSync) console.log('[GameScene][debug] Oponente BOT fusionando mano y campo', {
+            fieldIndex: plan.fieldIndex,
+            handIndex: plan.handIndex,
+            timestamp: Date.now()
+        });
+
+        const fusedCard = opponent.fuseFromHand(handCard.instanceId, plan.fieldIndex);
+        if (!fusedCard) return false;
+
+        const previousCard = this.findOpponentCardObject(plan.fieldIndex);
+        if (previousCard) previousCard.destroy();
+
+        const slot = this.scene['opponent_battle_slots'][plan.fieldIndex];
+        const fusedObject = renderer.createFieldCard(slot, fusedCard, {
+            isOpponent: true,
+            revealed: true,
+            fieldIndex: plan.fieldIndex
+        });
+        fusedObject.reveal();
+
+        renderer.refreshOpponentHand(opponent.hand);
+        renderer.updateDeckCounts(this.ctx.player.deck.getCardsCount(), opponent.deck.getCardsCount());
+        turn.consumeOpponentAction();
         this.continueTurn();
         return true;
     }

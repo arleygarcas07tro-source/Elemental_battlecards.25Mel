@@ -28,7 +28,9 @@ export default class GameComposer {
         const modeConfig = {
             ...config,
             ACTIONS_PER_TURN: mode?.id === 'contrarreloj' ? 1 : config.ACTIONS_PER_TURN,
-            TURN_TIME_LIMIT_MS: mode?.id === 'turnos30' ? 10000 : config.TURN_TIME_LIMIT_MS
+            TURN_TIME_LIMIT_MS: mode?.id === 'contrarreloj' ? 8000
+                : mode?.id === 'turnos30' ? 10000
+                    : config.TURN_TIME_LIMIT_MS
         };
         const match = new GameMatch({
             config: modeConfig,

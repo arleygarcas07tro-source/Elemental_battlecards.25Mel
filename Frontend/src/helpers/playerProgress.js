@@ -96,11 +96,11 @@ function syncToServer(promise) {
 
 // Descarga el progreso real desde el servidor y lo vuelca en localStorage.
 // Se usa tras el login para que el perfil refleje lo guardado en la base de datos.
-export async function hydrateProgressFromServer(username) {
+export async function hydrateProgressFromServer(username, profileSnapshot = null) {
     if (guestSession.isActive()) return load(username);
     if (!isAuthenticated()) return load(username);
     try {
-        const profile = await fetchProfile();
+        const profile = profileSnapshot || await fetchProfile();
         if (!profile) return load(username);
 
         const existingProgress = load(username);

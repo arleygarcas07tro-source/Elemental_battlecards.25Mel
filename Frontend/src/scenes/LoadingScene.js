@@ -1,6 +1,7 @@
 import Phaser from 'phaser';
 import { ELEMENT_ICONS as elementIcons } from './ui/elementCatalog.js';
 import { fetchShopState } from '../helpers/shopApi.js';
+import { resolvePlayerData } from '../helpers/playerData.js';
 
 export default class LoadingScene extends Phaser.Scene {
     constructor() {
@@ -8,7 +9,17 @@ export default class LoadingScene extends Phaser.Scene {
     }
 
     init(data) {
-        this.playerData = data.playerData || { username: 'Jugador' };
+        data = data || {};
+        this.playerData = resolvePlayerData(data.playerData || data);
+        this.destinationScene = data.destinationScene || null;
+        this.destinationData = data.destinationData || null;
+        this.destinationReady = false;
+        this.destinationTransitionComplete = false;
+        this.destinationSceneInstance = null;
+        this.destinationProgressHandler = null;
+        this.destinationReadyHandler = null;
+        this.destinationBlockedHandler = null;
+        this.destinationTimeout = null;
     }
 
     create() {
@@ -66,7 +77,10 @@ export default class LoadingScene extends Phaser.Scene {
         };
 
         this.add.text(width / 2, height * 0.30, 'Elemental Battlecards', titleStyle).setOrigin(0.5).setDepth(5);
-        this.add.text(width / 2, height * 0.375, 'Cargando reino elemental...', subtitleStyle).setOrigin(0.5).setDepth(5);
+        const subtitle = this.destinationScene
+            ? 'Preparando el campo de batalla...'
+            : 'Cargando reino elemental...';
+        this.add.text(width / 2, height * 0.375, subtitle, subtitleStyle).setOrigin(0.5).setDepth(5);
 
         const iconXStart = width / 2 - ((elementIcons.length - 1) * 100) / 2;
         const iconY = height * 0.48;
@@ -112,22 +126,108 @@ export default class LoadingScene extends Phaser.Scene {
 
         const loadingText = this.add.text(width / 2, progressY - 36, 'Cargando 0%', { fontFamily: 'Arial', fontSize: '18px', color: '#ffffff' }).setOrigin(0.5).setDepth(6);
 
-        let progress = 0;
+        this.progressBarWidth = progressBarWidth;
+        this.progressFill = progressFill;
+        this.progressGlow = progressGlow;
+        this.loadingText = loadingText;
+        this.currentProgress = 0;
+
+        if (this.destinationScene) {
+            this._launchDestination();
+            return;
+        }
+
+        // Flujo original tras iniciar sesión: mantener la presentación de 2.5 s.
         this.tweens.addCounter({
             from: 0,
             to: 100,
             duration: 2500,
             ease: 'Power1',
-            onUpdate: (tween) => {
-                progress = tween.getValue();
-                progressFill.width = (progressBarWidth * progress) / 100;
-                progressGlow.width = progressFill.width;
-                loadingText.setText(`Cargando ${Math.round(progress)}%`);
-            },
-            onComplete: () => {
-                console.log('✅ Carga completada, transitando a HomeScenes...');
-                this.scene.start('HomeScenes', { playerData: this.playerData });
-            }
+            onUpdate: (tween) => this._updateProgress(tween.getValue()),
+            onComplete: () => this.scene.start('HomeScenes', { playerData: this.playerData })
         });
+    }
+
+    /** Abre la escena destino debajo de la pantalla de carga y espera su señal de preparación. */
+    _launchDestination() {
+        const destination = this.scene.get(this.destinationScene);
+        if (!destination) {
+            console.error(`[LoadingScene] No existe la escena destino "${this.destinationScene}".`);
+            this._returnToDifficultySelect();
+            return;
+        }
+
+        this.destinationSceneInstance = destination;
+        this.destinationProgressHandler = (progress) => {
+            // Reservamos el último tramo para el montaje del tablero y la UI.
+            this._updateProgress(10 + Math.max(0, Math.min(1, progress)) * 85);
+        };
+        this.destinationReadyHandler = () => this._completeDestinationTransition();
+        this.destinationBlockedHandler = () => this._closeAfterDestinationRedirect();
+
+        destination.load.on('progress', this.destinationProgressHandler);
+        destination.events.once('board-ready', this.destinationReadyHandler);
+        destination.events.once('board-load-blocked', this.destinationBlockedHandler);
+        this.events.once('shutdown', this._cleanupDestinationListeners, this);
+
+        this.destinationTimeout = this.time.delayedCall(20000, () => {
+            console.error(`[LoadingScene] La escena "${this.destinationScene}" no informó que el tablero estuviera listo.`);
+            this._returnToDifficultySelect();
+        });
+
+        this._updateProgress(5);
+        this.scene.launch(this.destinationScene, this.destinationData || { playerData: this.playerData });
+        // La pantalla de carga permanece sobre el campo mientras Phaser prepara sus recursos.
+        this.scene.bringToTop(this.scene.key);
+    }
+
+    _completeDestinationTransition() {
+        if (this.destinationTransitionComplete) return;
+        this.destinationTransitionComplete = true;
+        this._clearDestinationTimeout();
+        this._updateProgress(100);
+        // Deja que el campo y la interfaz dibujen al menos un frame bajo la carga.
+        this.time.delayedCall(240, () => this.scene.stop(this.scene.key));
+    }
+
+    _closeAfterDestinationRedirect() {
+        if (this.destinationTransitionComplete) return;
+        this.destinationTransitionComplete = true;
+        this._clearDestinationTimeout();
+        this.time.delayedCall(120, () => this.scene.stop(this.scene.key));
+    }
+
+    _returnToDifficultySelect() {
+        if (this.destinationTransitionComplete) return;
+        this.destinationTransitionComplete = true;
+        this._clearDestinationTimeout();
+        if (this.destinationScene && this.scene.isActive(this.destinationScene)) {
+            this.scene.stop(this.destinationScene);
+        }
+        this.scene.stop('UIScene');
+        this.scene.start('DifficultySelectScene', { playerData: this.playerData });
+    }
+
+    _clearDestinationTimeout() {
+        if (!this.destinationTimeout) return;
+        this.destinationTimeout.remove(false);
+        this.destinationTimeout = null;
+    }
+
+    _cleanupDestinationListeners() {
+        const destination = this.destinationSceneInstance;
+        if (!destination) return;
+        if (this.destinationProgressHandler) destination.load.off('progress', this.destinationProgressHandler);
+        if (this.destinationReadyHandler) destination.events.off('board-ready', this.destinationReadyHandler);
+        if (this.destinationBlockedHandler) destination.events.off('board-load-blocked', this.destinationBlockedHandler);
+        this.destinationSceneInstance = null;
+    }
+
+    _updateProgress(value) {
+        if (!this.progressFill || !this.loadingText || !this.progressGlow) return;
+        this.currentProgress = Math.max(this.currentProgress || 0, Math.min(100, Number(value) || 0));
+        this.progressFill.width = (this.progressBarWidth * this.currentProgress) / 100;
+        this.progressGlow.width = this.progressFill.width;
+        this.loadingText.setText(`Cargando ${Math.round(this.currentProgress)}%`);
     }
 }

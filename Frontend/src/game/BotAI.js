@@ -2,6 +2,7 @@ import { calculateAttackDamage } from '../helpers/combat.js';
 import CardHealthService from './CardHealthService.js';
 import { getBaseCardTypes } from '../game_objects/card-definitions.js';
 import { CARD_TYPES } from '../helpers/constants.js';
+import { getDifficultyPercent } from './difficultyCatalog.js';
 
 const between = (min, max) => Math.floor(Math.random() * (max - min + 1)) + min;
 const randPick = (arr) => arr[Math.floor(Math.random() * arr.length)];
@@ -36,6 +37,8 @@ export default class BotAI {
      */
     setDifficulty(difficulty) {
         this.difficulty = Math.max(1, Math.min(10, Math.round(Number(difficulty) || 1)));
+        this.difficultyPercent = getDifficultyPercent(this.difficulty);
+        this.decisionMultiplier = this.difficultyPercent / 100;
         this._delay = this.computeActionDelay();
         this._scoreModifier = this.computeScoreModifier();
     }
@@ -45,30 +48,15 @@ export default class BotAI {
      * @returns {boolean}
      */
     shouldAttemptFusion() {
-        switch (this.difficulty) {
-            case 1:
-                return false;
-            case 2:
-                return Math.random() < 0.2;
-            case 3:
-                return Math.random() < 0.4;
-            case 4:
-                return Math.random() < 0.8;
-            case 5:
-            case 6:
-            case 7:
-            case 8:
-            case 9:
-            case 10:
-                return true;
-            default:
-                return Math.random() < 0.4;
-        }
+        if (this.difficulty === 1) return false;
+        if (this.difficulty === 2) return Math.random() < 0.2;
+        return true;
     }
 
     shouldUseEssencePower() {
-        const chanceByLevel = [0, 0, 0.12, 0.24, 0.4, 0.55, 0.68, 0.8, 0.92, 1];
-        return Math.random() < chanceByLevel[Math.max(0, Math.min(9, this.difficulty - 1))];
+        // Desde el nivel 3, usa siempre los poderes que realmente aportan
+        // ventaja y que puede pagar; los niveles 1 y 2 conservan sus límites.
+        return this.difficulty >= 3;
     }
 
     findUsefulEssencePower({ opponent, player, match, mustAttack, bestAttackPool, revealedDefenders }) {
@@ -98,19 +86,14 @@ export default class BotAI {
      * @returns {number}
      */
     getAttackThreshold() {
-        switch (this.difficulty) {
-            case 6: return -1;
-            case 7: return -2;
-            case 8: return -3;
-            case 9: return -5;
-            case 10: return -10;
-            case 1: return 10;
-            case 2: return 7;
-            case 3: return 5;
-            case 4: return 3;
-            case 5: return 0;
-            default: return 5;
+        if (this.difficulty <= 2) {
+            const progress = (this.difficultyPercent - 25) / 175;
+            return Math.round(10 - (progress * 20));
         }
+
+        const progress = (this.difficultyPercent - getDifficultyPercent(3))
+            / (getDifficultyPercent(10) - getDifficultyPercent(3));
+        return Math.round(1 - (Math.max(0, progress) * 11));
     }
 
     /**
@@ -191,7 +174,9 @@ export default class BotAI {
                 const damage = calculateAttackDamage(attacker.card, defender.card);
                 let currentScore = damage;
                 if (damage >= CardHealthService.percent(defender.card)) {
-                    currentScore += 20 + defender.card.level * 2;
+                    currentScore += this.difficulty >= 3
+                        ? (32 + defender.card.level * 5) * this.decisionMultiplier
+                        : (20 + defender.card.level * 2) * this.decisionMultiplier;
                 }
                 currentScore += this.scoreModifier;
 
@@ -205,10 +190,10 @@ export default class BotAI {
     }
 
     /**
-     * Busca la mejor fusión de campo posible (dos cartas iguales de nivel < 3).
+     * Busca la mejor fusión posible entre cartas del campo y/o de la mano.
      * @param {import('../game_objects/player.js').default} opponentFieldModel Esperado: el Battlefield del oponente.
      * @param {object[]} opponentHand La mano del oponente.
-     * @returns {{indices: number[]}|null}
+     * @returns {{indices?: number[], fieldIndex?: number, handIndex?: number}|null}
      */
     findBestFusion(opponentField, opponentHand) {
         const samePairs = [];
@@ -233,10 +218,36 @@ export default class BotAI {
             && (needed.length > 0 || opponentHand.length === 0 || this.gemFocus)) {
             // En niveles altos se prioriza crear nivel 3; en los bajos, fusiones
             // sencillas. En modo gemas también se busca llegar al nivel 3.
-            samePairs.sort((a, b) => (this.gemFocus || this.difficulty >= 7)
+            samePairs.sort((a, b) => (this.gemFocus || this.difficulty >= 3)
                 ? (b.level - a.level)
                 : (a.level - b.level));
             return { indices: [samePairs[0].i, samePairs[0].j] };
+        }
+
+        // Desde dificultad 3, también fusiona una carta de la mano con otra
+        // del campo. Esto permite mejorar una carta aunque no haya un par en
+        // el tablero y generar gemas en los modos que las requieren.
+        if ((this.gemFocus || this.difficulty >= 3)
+            && !shouldPreserveOpenSlotForMissingType) {
+            const handPairs = [];
+            for (let fieldIndex = 0; fieldIndex < opponentField.size; fieldIndex++) {
+                const fieldCard = opponentField.get(fieldIndex);
+                if (!fieldCard || fieldCard.level >= 3) continue;
+
+                opponentHand.forEach((handCard, handIndex) => {
+                    if (handCard.type !== fieldCard.type || handCard.level !== fieldCard.level) return;
+                    handPairs.push({ fieldIndex, handIndex, level: fieldCard.level });
+                });
+            }
+
+            if (handPairs.length > 0) {
+                handPairs.sort((a, b) => b.level - a.level);
+                return {
+                    kind: 'fusion',
+                    fieldIndex: handPairs[0].fieldIndex,
+                    handIndex: handPairs[0].handIndex
+                };
+            }
         }
 
         return null;
@@ -260,9 +271,10 @@ export default class BotAI {
 
         opponent.hand.forEach((card, handIndex) => {
             const coversMissingType = missingTypes.includes(card.type);
-            const healthLevelWeight = this.difficulty * 0.35;
-            const tacticalWeight = this.difficulty / 10;
-            let score = (coversMissingType ? 100 : 0) + card.level * healthLevelWeight;
+            const healthLevelWeight = this.decisionMultiplier * 3.5;
+            const tacticalWeight = this.decisionMultiplier;
+            let score = (coversMissingType ? 100 * this.decisionMultiplier : 0)
+                + card.level * healthLevelWeight;
 
             playerFieldCards.forEach(({ card: defender }) => {
                 const damage = calculateAttackDamage(card, defender);
@@ -300,11 +312,14 @@ export default class BotAI {
     decideAction(opts) {
         const { opponent, player, match, mustAttack, playerHasField, opponentAttackers, bestAttackPool, revealedDefenders, playerFieldCards } = opts;
         const legalAttackers = Array.isArray(bestAttackPool) ? bestAttackPool : opponentAttackers;
+        // Desde el nivel 3, la IA calcula ataques contra todas las cartas del
+        // campo que el jugador puede ver, y elige la mejor oportunidad táctica.
+        const targetableDefenders = this.difficulty >= 3 ? playerFieldCards : revealedDefenders;
         // Un ataque obligatorio solo bloquea otras jugadas si el bot tiene
         // al menos una carta que pueda atacar ahora (sin descanso ni cooldown).
         const attackRequiredNow = mustAttack && legalAttackers.length > 0;
 
-        const bestAttack = this.findBestAttack(bestAttackPool, revealedDefenders);
+        const bestAttack = this.findBestAttack(bestAttackPool, targetableDefenders);
 
         // 2) Obligado a atacar y sin defensas -> ataque directo por esencias.
         if (attackRequiredNow && !playerHasField) {
@@ -333,7 +348,14 @@ export default class BotAI {
 
         // En el turno obligatorio, el ataque se resuelve antes de considerar poderes.
         // Los poderes no consumen acciones y pueden usarse después del ataque requerido.
-        const power = this.findUsefulEssencePower({ opponent, player, match, mustAttack: attackRequiredNow, bestAttackPool, revealedDefenders });
+        const power = this.findUsefulEssencePower({
+            opponent,
+            player,
+            match,
+            mustAttack: attackRequiredNow,
+            bestAttackPool,
+            revealedDefenders: targetableDefenders
+        });
         if (power) return power;
 
         // Desarrolla los elementos que faltan antes de fusionar duplicados.
@@ -344,7 +366,7 @@ export default class BotAI {
         const shouldTryFusion = this.gemFocus || this.shouldAttemptFusion() || !playCard;
         if (!attackRequiredNow && shouldTryFusion) {
             const fusion = this.findBestFusion(opponent.field, opponent.hand);
-            if (fusion) return { kind: 'fusion', indices: fusion.indices };
+            if (fusion) return { kind: 'fusion', ...fusion };
         }
 
         // Ocupa el campo con la mejor carta restante si no hay jugada táctica.

@@ -1,8 +1,9 @@
 import DomSceneBase from './ui/DomSceneBase.js';
 import { createVideoBackground } from './ui/videoBackground.js';
-import { DIFFICULTY_LEVELS as levels } from '../game/difficultyCatalog.js';
+import { DIFFICULTY_LEVELS as levels, getDifficultyPercent } from '../game/difficultyCatalog.js';
 import { listGameModes } from '../game/gameModes.js';
 import { getHighestUnlockedBotDifficulty } from '../helpers/playerProgress.js';
+import { resolvePlayerData } from '../helpers/playerData.js';
 
 /**
  * Escena para seleccionar el modo de juego y el nivel de dificultad antes de
@@ -16,7 +17,7 @@ export default class DifficultySelectScene extends DomSceneBase {
     }
 
     init(data) {
-        this.playerData = data;
+        this.playerData = resolvePlayerData(data);
     }
 
     preload() {
@@ -42,7 +43,7 @@ export default class DifficultySelectScene extends DomSceneBase {
                 ${locked ? '<span class="dv-lock" aria-hidden="true">🔒</span>' : ''}
                 <div class="dv-medallion"><span>${lv.level}</span></div>
                 <img class="dv-el" src="/assets/images/iconos/${lv.icon}.jpeg" alt="${lv.name}">
-                <div class="dv-level">Nivel ${lv.level}</div>
+                <div class="dv-level">Nivel ${lv.level} · ${getDifficultyPercent(lv.level)}%</div>
                 <div class="dv-name">${lv.name}</div>
                 <div class="dv-dots">${dots}</div>
                 <div class="dv-desc">${locked ? `Gana el nivel ${lv.level - 1} para desbloquear` : lv.desc}</div>
@@ -464,11 +465,15 @@ export default class DifficultySelectScene extends DomSceneBase {
                 const level = parseInt(card.getAttribute('data-level'));
                 if (level > getHighestUnlockedBotDifficulty(username)) return;
                 console.log(`Iniciando partida con dificultad nivel ${level} (modo ${this.selectedMode})`);
-                this.scene.start('GameScene', {
+                this.scene.start('LoadingScene', {
                     playerData: this.playerData,
-                    vsBot: true,
-                    botDifficulty: level,
-                    gameMode: this.selectedMode
+                    destinationScene: 'GameScene',
+                    destinationData: {
+                        playerData: this.playerData,
+                        vsBot: true,
+                        botDifficulty: level,
+                        gameMode: this.selectedMode
+                    }
                 });
             }, 'click');
         });

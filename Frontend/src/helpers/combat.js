@@ -2,9 +2,9 @@ import { ADVANTAGES } from './constants.js';
 import CardHealthService from '../game/CardHealthService.js';
 
 const LEVEL_DAMAGE = [
-    [5, 5, 2],
-    [25, 15, 10],
-    [50, 35, 25]
+    [12, 9, 6],
+    [28, 24, 18],
+    [48, 42, 36]
 ];
 
 const ELEMENT_DAMAGE_MODIFIER = 5;

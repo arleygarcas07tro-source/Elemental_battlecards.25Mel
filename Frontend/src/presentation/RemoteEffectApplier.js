@@ -149,6 +149,11 @@ export default class RemoteEffectApplier {
                 break;
             }
 
+            case 'bomb-impact': {
+                this.ctx.bombImpactController?.apply(effect.ownerId, effect.fieldIndex);
+                break;
+            }
+
             case 'direct-attack': {
                 const attackerObj = this.scene.children.list.find(c =>
                     c.getData('isOpponentCard') &&

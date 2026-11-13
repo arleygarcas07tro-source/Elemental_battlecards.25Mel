@@ -1,6 +1,6 @@
 import { play as playSfx } from '../helpers/audioManager.js';
 import DomSceneBase from './ui/DomSceneBase.js';
-import { ELEMENTS, elementByKey, elementsNavHTML, energyParticlesHTML } from './ui/elementCatalog.js';
+import { ELEMENTS, elementByKey, energyParticlesHTML } from './ui/elementCatalog.js';
 import { fetchShopState } from '../helpers/shopApi.js';
 
 const CARD_NAMES = {
@@ -34,13 +34,11 @@ export default class CardsScene extends DomSceneBase {
     create() {
         const particles = energyParticlesHTML();
 
-        const sideOrbs = ELEMENTS.map(el => `
-            <span class="side-orb" style="--el:${el.color}; --el-glow:${el.glow};" title="${el.name}">
-                <img src="${el.img}" alt="${el.name}">
-            </span>
+        const elementsNavHtml = ELEMENTS.map(el => `
+            <button class="nav-orb" type="button" data-filter="${el.key}" style="--el:${el.color}; --el-glow:${el.glow};" aria-label="Filtrar por ${el.name}" aria-pressed="false" title="Filtrar por ${el.name}">
+                <img src="${el.img}" alt="">
+            </button>
         `).join('');
-
-        const elementsNavHtml = elementsNavHTML();
 
         const cardsHtml = this.cards.map((card, index) => {
             const el = elementByKey(card.element);
@@ -59,15 +57,6 @@ export default class CardsScene extends DomSceneBase {
                 </article>
             `;
         }).join('');
-
-        const chipsHtml = `
-            <button class="filter-chip chip-all active" data-filter="all" style="--el:#ffd75a; --el-soft:rgba(255,215,90,0.14); --el-glow:rgba(255,215,90,0.4);">Todos</button>
-            ${ELEMENTS.map(el => `
-                <button class="filter-chip" data-filter="${el.key}" style="--el:${el.color}; --el-soft:${el.soft}; --el-glow:${el.glow};">
-                    <span class="chip-orb"><img src="${el.img}" alt=""></span>${el.name}
-                </button>
-            `).join('')}
-        `;
 
         const html = `
         <style>
@@ -132,42 +121,6 @@ export default class CardsScene extends DomSceneBase {
                 pointer-events: none;
             }
 
-            /* ---------- SÍMBOLOS LATERALES ---------- */
-            .side-elements {
-                position: absolute;
-                top: 50%;
-                transform: translateY(-50%);
-                z-index: 2;
-                display: flex;
-                flex-direction: column;
-                gap: 14px;
-                padding: 14px 10px;
-                background: rgba(6, 8, 22, 0.4);
-                border: 1px solid rgba(255,255,255,0.07);
-                border-radius: 20px;
-                backdrop-filter: blur(6px);
-                box-shadow: 0 0 30px rgba(0,0,0,0.4);
-                pointer-events: none;
-            }
-            .side-elements.left { left: 12px; }
-            .side-elements.right { right: 12px; }
-            .side-orb {
-                width: 34px; height: 34px;
-                border-radius: 50%;
-                padding: 2px;
-                display: inline-flex;
-                align-items: center;
-                justify-content: center;
-                background: conic-gradient(from 0deg, var(--el), transparent 65%);
-                animation: orbPulse 5s ease-in-out infinite;
-            }
-            .side-orb img { width: 100%; height: 100%; border-radius: 50%; object-fit: cover; border: 1px solid rgba(255,255,255,0.2); }
-            .side-orb:nth-child(2) { animation-delay: -0.8s; }
-            .side-orb:nth-child(3) { animation-delay: -1.6s; }
-            .side-orb:nth-child(4) { animation-delay: -2.4s; }
-            .side-orb:nth-child(5) { animation-delay: -3.2s; }
-            .side-orb:nth-child(6) { animation-delay: -4s; }
-
             /* ---------- HUD CORNER BRACKETS ---------- */
             .hud { position: absolute; inset: 0; pointer-events: none; z-index: 1; }
             .hud::before, .hud::after {
@@ -230,6 +183,15 @@ export default class CardsScene extends DomSceneBase {
                 max-width: 620px;
                 width: 100%;
             }
+            .top-nav {
+                width: 100%;
+                max-width: 420px;
+                min-height: 40px;
+                display: flex;
+                justify-content: flex-end;
+                align-items: center;
+                gap: 8px;
+            }
             .search-wrap {
                 position: relative;
                 width: 100%;
@@ -261,41 +223,6 @@ export default class CardsScene extends DomSceneBase {
                 font-size: 14px;
                 opacity: 0.7;
             }
-            .chips { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 8px; }
-            .filter-chip {
-                appearance: none;
-                display: inline-flex;
-                align-items: center;
-                gap: 7px;
-                font-family: Poppins, Arial, sans-serif;
-                font-size: 12.5px;
-                font-weight: 600;
-                color: rgba(255,255,255,0.68);
-                background: rgba(255,255,255,0.04);
-                border: 1px solid rgba(255,255,255,0.12);
-                border-radius: 999px;
-                padding: 7px 13px;
-                cursor: pointer;
-                transition: transform 160ms ease, color 160ms ease, border-color 160ms ease, box-shadow 160ms ease;
-            }
-            .filter-chip .chip-orb {
-                width: 18px; height: 18px;
-                border-radius: 50%;
-                display: inline-flex;
-                align-items: center;
-                justify-content: center;
-                background: conic-gradient(from 0deg, var(--el), transparent 70%);
-                padding: 1px;
-            }
-            .filter-chip .chip-orb img { width: 100%; height: 100%; border-radius: 50%; object-fit: cover; }
-            .filter-chip:hover { transform: translateY(-2px); color: #fff; }
-            .filter-chip.active {
-                color: var(--el);
-                border-color: var(--el);
-                background: var(--el-soft);
-                box-shadow: 0 0 14px var(--el-glow);
-            }
-
             /* ---------- GALERÍA ---------- */
             .gallery {
                 position: relative;
@@ -305,7 +232,7 @@ export default class CardsScene extends DomSceneBase {
                 display: grid;
                 grid-template-columns: repeat(6, 1fr);
                 gap: 16px;
-                padding: 6px 96px 18px;
+                padding: 6px 30px 18px;
                 overflow-y: auto;
                 align-content: start;
             }
@@ -357,7 +284,7 @@ export default class CardsScene extends DomSceneBase {
                 z-index: 4;
                 display: flex;
                 align-items: center;
-                justify-content: space-between;
+                justify-content: flex-start;
                 gap: 18px;
                 padding: 10px 30px;
                 background: rgba(6, 8, 22, 0.72);
@@ -375,11 +302,13 @@ export default class CardsScene extends DomSceneBase {
                 justify-content: center;
                 background: conic-gradient(from 0deg, var(--el), transparent 60%);
                 opacity: 0.85;
-                transition: transform 160ms ease, opacity 160ms ease;
+                border: 0;
+                cursor: pointer;
+                transition: transform 160ms ease, opacity 160ms ease, box-shadow 160ms ease;
             }
             .nav-orb img { width: 100%; height: 100%; border-radius: 50%; object-fit: cover; border: 1px solid rgba(255,255,255,0.18); }
             .nav-orb:hover { transform: translateY(-3px) scale(1.08); opacity: 1; }
-            .nav-items { display: flex; align-items: center; gap: 10px; }
+            .nav-orb.active { opacity: 1; box-shadow: 0 0 0 2px #ffd75a, 0 0 18px var(--el-glow); }
             .nav-item {
                 appearance: none;
                 font-family: Poppins, Arial, sans-serif;
@@ -391,7 +320,7 @@ export default class CardsScene extends DomSceneBase {
                 padding: 10px 18px;
                 border-radius: 12px;
                 cursor: pointer;
-                transition: color 160ms ease, box-shadow 160ms ease, background 160ms ease, border-color 160ms ease;
+                transition: color 160ms ease, box-shadow 160ms ease, background 160ms ease, border-color 160ms ease, opacity 160ms ease, transform 160ms ease;
             }
             .nav-item:hover { color: #fff; background: rgba(255,255,255,0.06); }
             .nav-item.active {
@@ -432,10 +361,8 @@ export default class CardsScene extends DomSceneBase {
                 .search-wrap { max-width: none; }
                 .search-wrap input { min-height: 34px; padding: 6px 10px 6px 34px; font-size: 12px; border-radius: 9px; }
                 .search-wrap::before { left: 10px; font-size: 12px; }
-                .chips { width: 100%; flex-wrap: nowrap; justify-content: flex-start; gap: 5px; overflow-x: auto; padding: 2px; scrollbar-width: none; }
-                .chips::-webkit-scrollbar { display: none; }
-                .filter-chip { flex: 0 0 auto; min-height: 30px; gap: 5px; padding: 4px 8px; font-size: 10px; }
-                .filter-chip .chip-orb { width: 15px; height: 15px; }
+                .top-nav { min-height: 28px; }
+                .top-nav .nav-item { min-height: 28px; padding: 4px 8px; font-size: 10px; }
                 .gallery { grid-template-columns: repeat(6, minmax(0, 1fr)); grid-auto-rows: max-content; gap: 6px; padding: 4px 10px 8px; overflow-y: auto; }
                 .gal-card { height: auto; min-width: 0; aspect-ratio: 3 / 4; border-radius: 10px; }
                 .gal-frame { display: block; background: rgba(5, 7, 20, .7); }
@@ -445,13 +372,12 @@ export default class CardsScene extends DomSceneBase {
                 .bottom-nav { gap: 6px; padding: 3px 10px; }
                 .nav-elements { gap: 5px; }
                 .nav-orb { width: 25px; height: 25px; }
-                .nav-items { gap: 3px; }
-                .nav-item { min-height: 32px; padding: 5px 8px; font-size: 10px; }
+                .top-nav .nav-item { min-height: 32px; padding: 5px 8px; font-size: 10px; }
             }
             @media (max-width: 900px) and (orientation: landscape) and (hover: none) {
                 .gal-card:hover { transform: none; border-color: rgba(255,255,255,0.10); box-shadow: none; }
                 .gal-card:hover .gal-img { transform: none; filter: saturate(1.02); }
-                .filter-chip:hover, .nav-orb:hover { transform: none; }
+                .nav-orb:hover { transform: none; }
             }
         </style>
 
@@ -466,9 +392,6 @@ export default class CardsScene extends DomSceneBase {
 
             <div class="hud"></div>
 
-            <div class="side-elements left">${sideOrbs}</div>
-            <div class="side-elements right">${sideOrbs}</div>
-
             <header class="topbar">
                 <div class="brand">
                     <img class="logo" src="/assets/images/logotipomenu.jpg" alt="Elemental Battlecards">
@@ -479,10 +402,13 @@ export default class CardsScene extends DomSceneBase {
                     </div>
                 </div>
                 <div class="controls">
+                    <div class="top-nav" aria-label="Navegación de cartas">
+                        <button class="nav-item" data-nav="home">🏠 Inicio</button>
+                        <button class="nav-item active" aria-current="page">🃏 Cartas</button>
+                    </div>
                     <div class="search-wrap">
                         <input type="text" id="card-search" placeholder="Buscar carta u elemento...">
                     </div>
-                    <div class="chips" id="filter-chips">${chipsHtml}</div>
                 </div>
             </header>
 
@@ -492,10 +418,6 @@ export default class CardsScene extends DomSceneBase {
 
             <nav class="bottom-nav">
                 <div class="nav-elements">${elementsNavHtml}</div>
-                <div class="nav-items">
-                    <button class="nav-item" data-nav="home">🏠 Inicio</button>
-                    <button class="nav-item active">Cartas</button>
-                </div>
             </nav>
         </div>`;
 
@@ -510,10 +432,9 @@ export default class CardsScene extends DomSceneBase {
             this.track(card, () => playSfx('click', this), 'click');
         });
 
-        // Buscador y filtros
+        // Buscador y filtros elementales del pie de pantalla.
         const searchInput = node.querySelector('#card-search');
-        const filterChips = node.querySelectorAll('.filter-chip');
-
+        const filterButtons = node.querySelectorAll('.nav-orb[data-filter]');
         const applyFilters = () => {
             const q = this.state.query;
             cardEls.forEach(card => {
@@ -530,12 +451,17 @@ export default class CardsScene extends DomSceneBase {
         };
         if (searchInput) this.track(searchInput, onSearch, 'input');
 
-        filterChips.forEach(chip => {
-            this.track(chip, () => {
-                filterChips.forEach(c => c.classList.remove('active'));
-                chip.classList.add('active');
-                this.state.filter = chip.dataset.filter;
+        filterButtons.forEach(button => {
+            this.track(button, () => {
+                const selectedFilter = button.dataset.filter;
+                this.state.filter = this.state.filter === selectedFilter ? 'all' : selectedFilter;
+                filterButtons.forEach(item => {
+                    const active = this.state.filter === item.dataset.filter;
+                    item.classList.toggle('active', active);
+                    item.setAttribute('aria-pressed', String(active));
+                });
                 applyFilters();
+                playSfx('click', this);
             }, 'click');
         });
     }

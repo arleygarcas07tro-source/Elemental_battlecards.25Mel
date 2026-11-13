@@ -290,15 +290,26 @@ export function playDeathFx(scene, cardObject, cardData, onComplete) {
     const color = (cardData && TYPE_COLORS[cardData.type]) || 0xffffff;
 
     // Las partículas del elemento salen al morir.
-    fireBurst(scene, x, y, color, 22);
+    const flames = scene.add.particles(x, y, 'fx-pixel', {
+        speedY: { min: -210, max: -70 },
+        speedX: { min: -85, max: 85 },
+        scale: { start: 1.45, end: 0 },
+        alpha: { start: 0.95, end: 0 },
+        lifespan: 760,
+        gravityY: -70,
+        tint: color,
+        emitting: false
+    }).setDepth(100);
+    flames.explode(34);
+    scene.time.delayedCall(900, () => { try { flames.destroy(); } catch { /* ignorar */ } });
+    fireBurst(scene, x, y, color, 38);
 
     // Efecto de sonido de la muerte.
     playSfx('death', scene);
 
-    // La carta se desvanece girando y creciendo ligeramente.
+    // La carta se desvanece y gira sin cambiar de tamaño.
     scene.tweens.add({
         targets: cardObject,
-        scale: cardObject.scale * 1.15,
         alpha: { from: 1, to: 0 },
         angle: cardObject.angle + 14,
         duration: 220,

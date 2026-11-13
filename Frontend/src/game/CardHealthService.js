@@ -71,6 +71,11 @@ export default class CardHealthService {
         };
     }
 
+    /** Aplica el impacto de una bomba: 30% de la vida máxima de la carta. */
+    static applyBombDamage(card) {
+        return this.applyDamage(card, 30);
+    }
+
     static fusionHealth(firstCard, secondCard) {
         return Math.min(100, this.percent(firstCard) + this.percent(secondCard));
     }

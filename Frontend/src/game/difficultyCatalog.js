@@ -15,3 +15,14 @@ export const DIFFICULTY_LEVELS = [
     { level: 9,  name: 'Leyenda',     icon: 'planta',  clr: '#34d399', desc: 'Casi siempre usa poderes útiles disponibles.' },
     { level: 10, name: 'Mito',        icon: 'luz',     clr: '#ffd666', desc: 'Reacciona al máximo y usa poderes útiles.' }
 ];
+
+/**
+ * Multiplicador de criterio de la IA: nivel 1 = 25%, nivel 10 = 200%.
+ * La progresión es lineal para que cada nivel aumente de forma predecible.
+ * @param {number} level Dificultad del bot entre 1 y 10.
+ * @returns {number} Porcentaje de efectividad estratégica.
+ */
+export function getDifficultyPercent(level) {
+    const normalizedLevel = Math.min(10, Math.max(1, Math.round(Number(level) || 1)));
+    return Math.round(25 + ((normalizedLevel - 1) * 175) / 9);
+}

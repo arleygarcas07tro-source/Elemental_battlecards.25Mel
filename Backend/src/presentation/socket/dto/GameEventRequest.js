@@ -9,6 +9,7 @@ const ALLOWED_TYPES = [
   'attack',
   'direct_attack',
   'game_over',
+  'initial_deal_ready',
 ];
 
 /**
@@ -44,6 +45,10 @@ class GameEventRequest {
 
     const validIndex = (value) => Number.isInteger(value) && value >= 0 && value < FIELD_SIZE;
     const p = this.payload;
+
+    if (this.type === 'initial_deal_ready') {
+      return p.actor === 'player' && (p.playerRole === 'host' || p.playerRole === 'guest');
+    }
 
     switch (this.type) {
       case 'play_card':

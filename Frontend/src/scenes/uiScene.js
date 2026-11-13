@@ -83,6 +83,8 @@ export default class UIScene extends Phaser.Scene {
         this.gameScene.events.on('gameplay-message', this.handleGameplayMessage, this);
         this.gameScene.events.on('convergence-status', this.handleConvergenceStatus, this);
         this.gameScene.events.on('layout-resized', this.handleLayoutResized, this);
+        this.gameScene.events.on('initial-deal-complete', this.handleInitialDealComplete, this);
+        this.gameScene.events.on('lan-deal-ready', this.handleLanDealReady, this);
         this.gameScene.events.on('start-game-failed', this.handleStartGameFailed, this);
 
         const objectives = this.gameScene.getObjectivesPayload?.();
@@ -113,6 +115,8 @@ export default class UIScene extends Phaser.Scene {
                 this.gameScene.events.off('gameplay-message', this.handleGameplayMessage, this);
                 this.gameScene.events.off('convergence-status', this.handleConvergenceStatus, this);
                 this.gameScene.events.off('layout-resized', this.handleLayoutResized, this);
+                this.gameScene.events.off('initial-deal-complete', this.handleInitialDealComplete, this);
+                this.gameScene.events.off('lan-deal-ready', this.handleLanDealReady, this);
                 this.gameScene.events.off('start-game-failed', this.handleStartGameFailed, this);
                 // Nos aseguramos de eliminar también el listener del contador de ataque
                 // para evitar que la UI de una partida anterior reaccione a eventos de una nueva.
@@ -405,6 +409,7 @@ export default class UIScene extends Phaser.Scene {
             fontFamily: 'Georgia, serif', fontSize: `${Math.max(13, Math.round(19 * this.layout.scale))}px`, fontStyle: 'bold',
             color: '#d8ffe6', stroke: '#000', strokeThickness: 4
         }).setOrigin(0.5);
+        this.startButtonText = startText;
 
         startContainer.add([startBg, playIcon, startText]);
         const touchWidth = Math.max(bw, 56);
@@ -414,6 +419,7 @@ export default class UIScene extends Phaser.Scene {
             hitAreaCallback: Phaser.Geom.Rectangle.Contains,
             useHandCursor: true
         });
+        this.syncStartButton();
         startContainer.on('pointerover', () => startContainer.setScale(1.04));
         startContainer.on('pointerout', () => startContainer.setScale(1));
         startContainer.on('pointerdown', () => {
@@ -428,9 +434,36 @@ export default class UIScene extends Phaser.Scene {
      * @returns {boolean}
      */
     _canStartMatch() {
-        if (this.gameScene.turn?.state !== 'pre-start') return false;
+        if (this.gameScene.autoStartAfterDeal || !this.gameScene.initialDealComplete
+            || this.gameScene.turn?.state !== 'pre-start') return false;
         if (!this.gameScene.isLAN) return true;
-        return this.gameScene.playerRole === 'host';
+        return this.gameScene.playerRole === 'host'
+            && this.gameScene.localDealReady
+            && this.gameScene.remoteDealReady;
+    }
+
+    handleInitialDealComplete() {
+        this.syncStartButton();
+    }
+
+    handleLanDealReady() {
+        this.syncStartButton();
+    }
+
+    syncStartButton() {
+        if (!this.startButton || !this.gameScene) return;
+        const canShow = !this.gameScene.autoStartAfterDeal
+            && this.gameScene.initialDealComplete
+            && this.gameScene.turn?.state === 'pre-start'
+            && (!this.gameScene.isLAN || this.gameScene.playerRole === 'host');
+        const waitingForPeer = this.gameScene.isLAN
+            && this.gameScene.playerRole === 'host'
+            && this.gameScene.initialDealComplete
+            && !this.gameScene.remoteDealReady;
+
+        this.startButton.setVisible(canShow);
+        this.startButton.setAlpha(waitingForPeer ? 0.68 : 1);
+        this.startButtonText?.setText(waitingForPeer ? 'ESPERANDO...' : 'INICIAR PARTIDA');
     }
 
     /**
@@ -439,7 +472,7 @@ export default class UIScene extends Phaser.Scene {
      */
     handleStartGameFailed(message) {
         if (!this.startButton || this.gameScene.turn?.state !== 'pre-start') return;
-        this.startButton.setVisible(this._canStartMatch());
+        this.syncStartButton();
         if (message) this.showToast(message, 2400);
     }
 
@@ -1038,7 +1071,7 @@ export default class UIScene extends Phaser.Scene {
         backBtnBg.strokeRoundedRect(btnX - btnWidth / 2, btnY - btnHeight / 2, btnWidth, btnHeight, 12);
         backBtnBg.setDepth(102);
 
-        track(this.add.text(btnX, btnY, 'Ir al inicio', {
+        track(this.add.text(btnX, btnY, 'Volver a niveles', {
             fontFamily: 'Georgia, serif', fontSize: '20px', color: '#ffffff', fontStyle: 'bold',
             stroke: '#000', strokeThickness: 4
         }).setOrigin(0.5).setDepth(103));
@@ -1049,7 +1082,7 @@ export default class UIScene extends Phaser.Scene {
             modalObjects.forEach((obj) => { if (obj) obj.destroy(); });
             this.scene.stop('GameScene');
             this.scene.stop('UIScene');
-            this.scene.start('HomeScenes', { playerData: this.playerData });
+            this.scene.start('DifficultySelectScene', { playerData: this.playerData });
         });
     }
 

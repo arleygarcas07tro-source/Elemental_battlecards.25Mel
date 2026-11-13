@@ -621,8 +621,12 @@ export default class CreateRoomScene extends DomSceneBase {
                 }
                 this.renderRanking(rankingContent, ranking);
             } catch (error) {
-                rankingContent.textContent = error.message || 'No se pudo cargar el ranking.';
-                rankingContent.className = 'ranking-status';
+                if (error && error.message === 'HTTP 500') {
+                    rankingContent.innerHTML = '<div class="ranking-status">No hay resultados. Inicia una partida LAN para aparecer en el ranking.</div>';
+                } else {
+                    rankingContent.textContent = error.message || 'No se pudo cargar el ranking.';
+                    rankingContent.className = 'ranking-status';
+                }
             }
         }, 'click');
         this.track(node.querySelector('#ranking-close'), closeRanking, 'click');
@@ -862,7 +866,7 @@ export default class CreateRoomScene extends DomSceneBase {
         const entries = Array.isArray(ranking.entries) ? ranking.entries : [];
         const current = ranking.currentPlayer;
         if (!entries.length) {
-            container.innerHTML = '<div class="ranking-status">Aún no hay partidas LAN registradas. ¡Juega una para aparecer aquí!</div>';
+            container.innerHTML = '<div class="ranking-status">No hay resultados. Inicia una partida LAN para aparecer en el ranking.</div>';
             return;
         }
 
