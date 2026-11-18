@@ -107,7 +107,7 @@ export default class BotTurnRunner {
             opponent,
             player,
             match,
-            mustAttack: turn.opponentMustAttackThisTurn && !turn.opponentPerformedAttackThisTurn,
+            mustAttack: turn.opponentMustAttackThisTurn,
             playerHasField: player.field.hasAny(),
             opponentAttackers,
             bestAttackPool,
@@ -285,9 +285,8 @@ export default class BotTurnRunner {
                         this.scene.events.emit('essence-activated', opponent.id, winnerData.type);
                     }
                 }
-                turn.opponentPerformedAttackThisTurn = true;
-                // El ataque consume una acción del turno del bot.
-                turn.consumeOpponentAction();
+                // Ataca con cuota normal o completa el tercer ataque obligatorio.
+                turn.consumeOpponentAttackAction();
                 this.continueTurn();
             }
         });
@@ -309,9 +308,8 @@ export default class BotTurnRunner {
         interaction.registerCardAttack(attackerObj, 'opponent');
         opponent.fillEssence(attackerObj.getData('cardData').type);
         this.scene.events.emit('essence-activated', opponent.id, attackerObj.getData('cardData').type);
-        this.ctx.turn.opponentPerformedAttackThisTurn = true;
-        // El ataque directo consume una acción del turno del bot.
-        this.ctx.turn.consumeOpponentAction();
+        // Usa una acción normal o completa la tercera acción obligatoria.
+        this.ctx.turn.consumeOpponentAttackAction();
         this.continueTurn();
         return true;
     }

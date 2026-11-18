@@ -178,9 +178,8 @@ export default class RemoteEffectApplier {
                     onComplete: () => {
                         renderer.restoreFieldCardPosition(attackerObj);
                         if (effect.isOpponentAction) {
-                            // El ataque remoto consume una acción del turno del rival.
-                            turn.consumeOpponentAction();
-                            turn.opponentPerformedAttackThisTurn = true;
+                            // Registra el ataque dentro de la cuota normal o la tercera obligatoria.
+                            turn.consumeOpponentAttackAction();
                         }
                     }
                 });

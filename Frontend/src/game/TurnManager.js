@@ -3,12 +3,12 @@ import { GAME_CONFIG } from '../helpers/constants.js';
 /**
  * Gestiona todo el estado del flujo de turnos de una partida:
  * estado actual, número de turnos, cupo de acciones por turno, contadores de
- * inactividad y ataques obligatorios, y bloqueos por animaciones.
+ * acciones y ataques obligatorios, y bloqueos por animaciones.
  * No depende de Phaser: es lógica pura que la escena consulta.
  */
 export default class TurnManager {
     /**
-     * @param {{MANDATORY_ATTACK_TURN: number, ACTIONS_PER_TURN: number}} [config=GAME_CONFIG]
+     * @param {{ACTIONS_PER_TURN: number}} [config=GAME_CONFIG]
      *   Configuración de reglas.
      */
     constructor(config = GAME_CONFIG) {
@@ -101,7 +101,7 @@ export default class TurnManager {
         this.playerPerformedAttackThisTurn = false;
         this.playerNextAttackBreaksTie = false;
         this.playerPowerUses = {};
-        this.playerMustAttackThisTurn = (this.playerTurnsSinceLastAttack >= this.config.MANDATORY_ATTACK_TURN - 1);
+        this.playerMustAttackThisTurn = false;
         return {
             turnNumber: this.playerTurnNumber,
             mustAttack: this.playerMustAttackThisTurn,
@@ -124,7 +124,7 @@ export default class TurnManager {
         this.opponentPerformedAttackThisTurn = false;
         this.opponentNextAttackBreaksTie = false;
         this.opponentPowerUses = {};
-        this.opponentMustAttackThisTurn = (this.opponentTurnsSinceLastAttack >= this.config.MANDATORY_ATTACK_TURN - 1);
+        this.opponentMustAttackThisTurn = false;
         return {
             turnNumber: this.opponentTurnNumber,
             mustAttack: this.opponentMustAttackThisTurn,
@@ -138,7 +138,11 @@ export default class TurnManager {
      * @returns {boolean}
      */
     canPlayerAct() {
-        return this.state === 'player-turn' && this.playerActionsLeft > 0;
+        return this.state === 'player-turn' && (this.playerActionsLeft > 0 || this.playerMustAttackThisTurn);
+    }
+
+    canPlayerAttack() {
+        return this.state === 'player-turn' && (this.playerActionsLeft > 0 || this.playerMustAttackThisTurn);
     }
 
     /**
@@ -146,7 +150,11 @@ export default class TurnManager {
      * @returns {boolean}
      */
     canOpponentAct() {
-        return this.state === 'opponent-turn' && this.opponentActionsLeft > 0;
+        return this.state === 'opponent-turn' && (this.opponentActionsLeft > 0 || this.opponentMustAttackThisTurn);
+    }
+
+    canOpponentAttack() {
+        return this.state === 'opponent-turn' && (this.opponentActionsLeft > 0 || this.opponentMustAttackThisTurn);
     }
 
     /**
@@ -155,9 +163,13 @@ export default class TurnManager {
      * @returns {number} Acciones que quedan disponibles en el turno.
      */
     consumePlayerAction() {
-        if (this.playerActionsLeft <= 0) return 0;
+        if (this.playerActionsLeft <= 0) {
+            if (this.playerMustAttackThisTurn) this.playerActionsTaken += 1;
+            return 0;
+        }
         this.playerActionsLeft -= 1;
         this.playerActionsTaken += 1;
+        if (this.playerActionsLeft === 0 && this.config.ACTIONS_PER_TURN >= 2) this.playerMustAttackThisTurn = true;
         return this.playerActionsLeft;
     }
 
@@ -166,9 +178,29 @@ export default class TurnManager {
      * @returns {number} Acciones que quedan disponibles en el turno.
      */
     consumeOpponentAction() {
-        if (this.opponentActionsLeft <= 0) return 0;
+        if (this.opponentActionsLeft <= 0) {
+            if (this.opponentMustAttackThisTurn) this.opponentActionsTaken += 1;
+            return 0;
+        }
         this.opponentActionsLeft -= 1;
         this.opponentActionsTaken += 1;
+        if (this.opponentActionsLeft === 0 && this.config.ACTIONS_PER_TURN >= 2) this.opponentMustAttackThisTurn = true;
+        return this.opponentActionsLeft;
+    }
+
+    consumePlayerAttackAction() {
+        if (this.playerMustAttackThisTurn) { this.playerMustAttackThisTurn = false; this.playerActionsTaken += 1; }
+        else this.consumePlayerAction();
+        this.playerPerformedAttackThisTurn = true;
+        this.playerTurnsSinceLastAttack = 0;
+        return this.playerActionsLeft;
+    }
+
+    consumeOpponentAttackAction() {
+        if (this.opponentMustAttackThisTurn) { this.opponentMustAttackThisTurn = false; this.opponentActionsTaken += 1; }
+        else this.consumeOpponentAction();
+        this.opponentPerformedAttackThisTurn = true;
+        this.opponentTurnsSinceLastAttack = 0;
         return this.opponentActionsLeft;
     }
 

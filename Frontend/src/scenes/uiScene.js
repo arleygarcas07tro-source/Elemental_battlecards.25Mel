@@ -90,11 +90,11 @@ export default class UIScene extends Phaser.Scene {
         const objectives = this.gameScene.getObjectivesPayload?.();
         if (objectives) this.handleObjectivesReady(objectives);
 
-        this.scene.get('GameScene').events.on('update-attack-counter', (owner, turnIndex, mustAttack) => {
+        this.scene.get('GameScene').events.on('update-attack-counter', (owner, turnIndex, mustAttack, totalMoves = 3) => {
             const textObj = this.attackCounterTexts && this.attackCounterTexts[owner];
             if (!textObj) return;
-            const obliged = mustAttack ? '  \u00b7  \u00a1OBLIGADO!' : '';
-            textObj.setText(`ATAQUE ${turnIndex}${obliged}`);
+            const obliged = mustAttack ? '  \u00b7  ATAQUE PENDIENTE' : '';
+            textObj.setText(mustAttack ? `MOV. ${turnIndex}${obliged}` : `MOV. ${turnIndex}/${totalMoves}`);
             textObj.setColor(mustAttack ? '#ff6b6b' : '#d7e6ff');
         });
 
@@ -174,9 +174,11 @@ export default class UIScene extends Phaser.Scene {
             this.handleActionsLeft('player', turn.playerActionsLeft, GAME_CONFIG.ACTIONS_PER_TURN);
             this.handleActionsLeft('opponent', turn.opponentActionsLeft, GAME_CONFIG.ACTIONS_PER_TURN);
             if (this.turnCounterText) {
-                this.turnCounterText.setText(this.gameMode.maxTurns
+                const isThirtyTurnMode = this.gameMode?.id === 'turnos30';
+                this.turnCounterText.setVisible(isThirtyTurnMode);
+                this.turnCounterText.setText(isThirtyTurnMode
                     ? `TÚ ${turn.playerTurnNumber}/${this.gameMode.maxTurns} · RIVAL ${turn.opponentTurnNumber}/${this.gameMode.maxTurns}`
-                    : `T${turn.playerTurnNumber}`);
+                    : '');
             }
             for (const type of ELEMENTS) {
                 if (this.gameScene.player?.essences?.has(type)) this.handleEssenceActivation('player', type);
@@ -324,14 +326,16 @@ export default class UIScene extends Phaser.Scene {
             fontFamily: 'Georgia, serif', fontSize: '14px', fontStyle: 'bold',
             color: '#bfe1ff', stroke: '#000', strokeThickness: 3
         }).setOrigin(1, 0.5).setDepth(5);
-        this.turnCounterText.setVisible(!!this.gameMode.maxTurns);
+        this.turnCounterText.setVisible(this.gameMode?.id === 'turnos30');
         this.events.off('update-turn-counter');
         this.gameScene.events.off('update-turn-counter');
         this.gameScene.events.on('update-turn-counter', (playerTurn, opponentTurn, max) => {
             if (!this.turnCounterText) return;
-            this.turnCounterText.setText(max
+            const isThirtyTurnMode = this.gameMode?.id === 'turnos30';
+            this.turnCounterText.setVisible(isThirtyTurnMode);
+            this.turnCounterText.setText(isThirtyTurnMode && max
                 ? `TÚ ${playerTurn}/${max} · RIVAL ${opponentTurn}/${max}`
-                : `T${playerTurn}`);
+                : '');
         });
 
         this.phaseSub = this.add.text(this.W / 2, y + h - 12, '', {
@@ -1263,7 +1267,7 @@ export default class UIScene extends Phaser.Scene {
             case 'poder-agotado':
                 return `${powerName} ya se uso este turno`;
             case 'sin-carga-tienda':
-                return `No tienes una carga adicional de ${powerName}`;
+                return `No tienes cargas de ${powerName}. Compra una en la tienda para usarlo`;
             case 'esencia-inactiva':
                 return `La esencia de ${element} no esta activa`;
             case 'sin-cementerio':

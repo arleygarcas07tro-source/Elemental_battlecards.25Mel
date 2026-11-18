@@ -72,6 +72,7 @@ export default class ShopScene extends DomSceneBase {
             .item-category { color:#70d9ed; font-size:9px; font-weight:700; letter-spacing:.16em; text-transform:uppercase; }
             .item-name { margin:5px 0 4px; color:#fff; font:700 16px Georgia,'Times New Roman',serif; }
             .item-desc { flex:1; margin:0 0 13px; color:rgba(235,237,244,.58); font-size:11px; line-height:1.5; }
+            .power-charges { margin:0 0 10px; color:#9deeff; font-size:11px; font-weight:700; }
             .item-footer { display:flex; align-items:center; justify-content:space-between; gap:8px; }
             .item-price { color:#ffe193; font-size:12px; font-weight:700; white-space:nowrap; }
             .item-price.gems { color:#93eaff; }
@@ -82,7 +83,7 @@ export default class ShopScene extends DomSceneBase {
             .shop-footnote { margin:10px 0 0; color:rgba(233,234,242,.38); font-size:10px; text-align:center; }
             @media (max-width:900px) { .shop-grid { grid-template-columns:repeat(2,minmax(0,1fr)); } }
             @media (max-width:620px) { .shop-top { align-items:flex-start; flex-direction:column; padding:17px; } .shop-head-actions { width:100%; justify-content:space-between; } .wallet { gap:6px; } .wallet-pill { padding:8px 9px; font-size:11px; } .shop-main { padding:18px 14px; } .shop-grid { grid-template-columns:1fr; } .shop-item { min-height:225px; } .item-preview { height:112px; } .shop-intro { align-items:flex-start; flex-direction:column; } .shop-status { text-align:left; } }
-            @media (max-width:900px) and (orientation:landscape) and (max-height:600px) { .shop-top { align-items:center; flex-direction:row; gap:10px; padding:7px 12px; } .shop-logo { width:36px; height:36px; } .shop-title { font-size:clamp(18px,3vw,24px); } .shop-subtitle { display:none; } .shop-head-actions { width:auto; gap:8px; } .wallet { gap:5px; } .wallet-pill { padding:6px 8px; font-size:10px; } .shop-home { padding:7px 10px; font-size:11px; } .shop-main { padding:8px 12px; } .shop-intro { align-items:center; margin-bottom:6px; } .shop-intro h2 { font-size:18px; } .shop-intro p { margin-top:2px; } .shop-tabs { gap:3px; margin-bottom:6px; } .shop-tab { padding:6px 10px 8px; font-size:11px; } .shop-grid { grid-template-columns:repeat(2,minmax(0,1fr)); gap:8px; padding:0 2px 8px 0; } .shop-item { min-height:0; } .item-preview { height:clamp(54px,14vh,78px); } .item-info { padding:8px 10px; } .item-name { margin:3px 0; font-size:14px; } .item-desc { margin-bottom:6px; font-size:10px; } .item-footer { flex-wrap:wrap; } .item-action { min-height:36px; } }
+            @media (max-width:900px) and (orientation:landscape) and (max-height:600px) { .shop-top { align-items:center; flex-direction:row; gap:10px; padding:7px 12px; } .shop-logo { width:36px; height:36px; } .shop-title { font-size:clamp(18px,3vw,24px); } .shop-subtitle { display:none; } .shop-head-actions { width:auto; gap:8px; } .wallet { gap:5px; } .wallet-pill { padding:6px 8px; font-size:10px; } .shop-home { padding:7px 10px; font-size:11px; } .shop-main { padding:8px 12px; } .shop-intro { align-items:center; margin-bottom:6px; } .shop-intro h2 { font-size:18px; } .shop-intro p { margin-top:2px; } .shop-tabs { gap:3px; margin-bottom:6px; } .shop-tab { padding:6px 10px 8px; font-size:11px; } .shop-grid { grid-template-columns:repeat(2,minmax(0,1fr)); gap:8px; padding:0 2px 8px 0; } .shop-item { min-height:0; } .item-preview { height:clamp(54px,14vh,78px); } .item-info { padding:8px 10px; } .item-name { margin:3px 0; font-size:14px; } .item-desc { margin-bottom:6px; font-size:10px; } .power-charges { margin-bottom:5px; font-size:10px; } .item-footer { flex-wrap:wrap; } .item-action { min-height:36px; } }
         </style>
         <div class="shop-screen">
             ${particles}
@@ -102,7 +103,7 @@ export default class ShopScene extends DomSceneBase {
                     ${CATEGORIES.map((category) => `<button class="shop-tab ${category.id === this.category ? 'active' : ''}" data-category="${category.id}">${category.label}</button>`).join('')}
                 </nav>
                 <section class="shop-grid" id="shop-grid" aria-live="polite"><div class="shop-empty">Cargando artículos…</div></section>
-                <p class="shop-footnote">Los poderes comprados se guardan como cargas de uso adicional. Los fondos se pueden equipar para tus batallas.</p>
+                <p class="shop-footnote">En Clásico, Contrarreloj y 30 Turnos, cada poder consume una carga comprada. En Gemas Elementales se conservan los costos de gemas y las cargas compradas son usos adicionales.</p>
             </main>
         </div>`;
 
@@ -139,7 +140,7 @@ export default class ShopScene extends DomSceneBase {
     }
 
     itemHtml(item, index) {
-        const categoryLabel = { background: 'Fondo de combate', card: 'Carta coleccionable', power: 'Poder · carga extra' }[item.category];
+        const categoryLabel = { background: 'Fondo de combate', card: 'Carta coleccionable', power: 'Poder · carga de uso' }[item.category];
         const preview = item.category === 'card'
             ? `<div class="item-preview card"><img src="/assets/images/cartas/carta-${item.type}-${item.level}.jpeg" alt="${item.name}" loading="lazy"></div>`
             : item.category === 'power'
@@ -155,8 +156,11 @@ export default class ShopScene extends DomSceneBase {
         } else {
             action = `<button class="item-action" data-action="purchase" data-item="${item.id}">Comprar</button>`;
         }
+        const powerCharges = item.category === 'power'
+            ? `<p class="power-charges" aria-label="Cargas disponibles">Cargas disponibles: ${Math.max(0, Number(item.quantity) || 0)}</p>`
+            : '';
         const price = item.price === 0 ? 'Gratis' : `💠 ${item.price} ${item.currency === 'coins' ? 'monedas' : 'gemas'}`;
-        return `<article class="shop-item" style="animation-delay:${index * 45}ms">${preview}<div class="item-info"><span class="item-category">${categoryLabel}</span><h3 class="item-name">${item.name}</h3><p class="item-desc">${item.description}</p><div class="item-footer"><span class="item-price ${item.currency === 'gems' ? 'gems' : ''}">${price}</span>${action}</div></div></article>`;
+        return `<article class="shop-item" style="animation-delay:${index * 45}ms">${preview}<div class="item-info"><span class="item-category">${categoryLabel}</span><h3 class="item-name">${item.name}</h3><p class="item-desc">${item.description}</p>${powerCharges}<div class="item-footer"><span class="item-price ${item.currency === 'gems' ? 'gems' : ''}">${price}</span>${action}</div></div></article>`;
     }
 
     async handleClick(event, node) {

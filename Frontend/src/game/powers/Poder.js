@@ -31,8 +31,13 @@ export default class Poder {
             essenceActive: ctx.player && ctx.player.essences ? ctx.player.essences.has(this.type) : false,
             graveyard: ctx.player && ctx.player.graveyard ? ctx.player.graveyard : [],
             opponentHand: ctx.opponent && ctx.opponent.hand ? ctx.opponent.hand : [],
-            // Coste: las gemas del mismo elemento que el poder.
+            // Disponibilidad de gemas del mismo elemento que el poder.
             gemCount: ctx.player && ctx.player.gems ? ctx.player.gems.count(this.type) : 0,
+            // Solo Gemas Elementales cobra gemas por los poderes.
+            powerRequiresGems: !ctx.mode || ctx.mode.id === 'gemas',
+            // Sin gemas, cada uso del jugador requiere una carga comprada.
+            requiresPurchasedCharge: ctx.side !== 'opponent'
+                && Boolean(ctx.mode && ctx.mode.id !== 'gemas'),
             // Límite de usos definido por el propio poder.
             usesThisTurn: ctx.turn && typeof ctx.turn.getPowerUses === 'function' ? ctx.turn.getPowerUses(this.type, ctx.side) : 0,
             purchasedUseAvailable: ctx.side !== 'opponent' && Boolean(ctx.match && ctx.match.hasPurchasedPowerCharge(this.type))

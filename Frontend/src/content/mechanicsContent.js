@@ -56,16 +56,16 @@ export const GAME_RULES_HTML = `
                 <li>Atacar con una carta.</li>
                 <li>Fusionar cartas si se cumplen los requisitos.</li>
             </ul>
-            <p>Una fusión cuenta como una acción. Atacar también cumple la obligación de ataque del turno; si queda otra acción disponible, puedes colocar o fusionar una carta. Las acciones no utilizadas no se acumulan. El turno termina al agotar las acciones o el tiempo disponible.</p>
+            <p>Colocar, atacar o fusionar consume una acción. En los modos de dos acciones, después de gastar esas dos acciones debes realizar una tercera acción obligatoria: atacar. Si no tienes una carta disponible para atacar, el turno termina. Las acciones no utilizadas no se acumulan y el tiempo disponible sigue limitando el turno.</p>
             <p>En Contrarreloj se dispone de una acción por turno. En el Desafío de 30 turnos se permiten hasta dos acciones por turno, con un límite de diez segundos.</p>
         </li>
 
         <li><strong>Regla de ataque obligatorio:</strong>
-            <p>Cada jugador debe realizar al menos un ataque cada tres turnos propios. Puedes atacar antes; cada ataque reinicia el contador. Si el ataque es obligatorio, debes atacar durante ese turno.</p>
+            <p>En los modos de dos acciones, cada turno exige un ataque como tercera acción después de las dos acciones normales, aunque hayas atacado antes. El ataque no consume una de las dos acciones normales.</p>
             <p><strong>Casos especiales:</strong></p>
             <ul>
                 <li>Si el rival no tiene cartas en el campo para defenderse, el ataque directo puede llenar una de tus esencias elementales.</li>
-                <li>Si debes atacar y no tienes cartas en el campo, tu turno se salta y el contador de ataques se reinicia.</li>
+                <li>Si después de las dos acciones no tienes una carta disponible para atacar, el turno termina automáticamente.</li>
             </ul>
         </li>
 
@@ -180,7 +180,7 @@ export const GAME_TUTORIAL_HTML = `
                     <div class="action-token second"><b>2</b><span>acción</span></div>
                 </div>
                 <h4>Usa tus acciones</h4>
-                <p>En Clásico y Gemas tienes hasta 2 acciones: colocar, atacar o fusionar. Ataca al menos una vez cada 3 turnos propios.</p>
+                <p>En los modos de dos acciones puedes colocar, atacar o fusionar dos veces y después debes atacar como tercera acción obligatoria.</p>
             </article>
             <article class="tutorial-step step-cycle">
                 <div class="step-number">03</div>

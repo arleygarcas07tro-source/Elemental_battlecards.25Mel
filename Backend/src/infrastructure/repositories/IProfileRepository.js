@@ -9,6 +9,7 @@ const METHODS = [
   'createBattle',
   'listMissions',
   'saveMissionProgress',
+  'claimMissionReward',
   'listAchievements',
   'unlockAchievement',
   'countCollectedCards',

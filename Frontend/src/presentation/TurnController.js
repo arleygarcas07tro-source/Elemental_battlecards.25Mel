@@ -35,6 +35,11 @@ export default class TurnController {
         this._pendingPurchasedPowers = new Set();
     }
 
+    get turnMoveLimit() {
+        const actions = this.ctx.match.config.ACTIONS_PER_TURN;
+        return actions >= 2 ? actions + 1 : actions;
+    }
+
     /**
      * Inicia la partida cuando la UI lo solicita.
      */
@@ -83,7 +88,7 @@ export default class TurnController {
         this.emitTurnCounters();
         this.scene.events.emit('update-turn-indicator', 'player');
         // Emitimos el estado del contador obligatorio para que la UI lo muestre
-        this.scene.events.emit('update-attack-counter', 'player', turn.playerTurnsSinceLastAttack + 1, turn.playerMustAttackThisTurn);
+        this.scene.events.emit('update-attack-counter', 'player', turn.playerActionsTaken + 1, turn.playerMustAttackThisTurn, this.turnMoveLimit);
         // El cupo de acciones se repone completo: lo no usado se pierde.
         this.emitActionsLeft('player', turn.playerActionsLeft);
 
@@ -92,14 +97,6 @@ export default class TurnController {
 
         this.startTurnTimer('player', turnStartedAt);
 
-        // Si está obligado a atacar y NO tiene cartas en campo: saltar el turno y reiniciar contador.
-        const playerHasFieldCards = player.field.hasAny();
-        if (turn.playerMustAttackThisTurn && !playerHasFieldCards) {
-            console.log('[GameScene] Obligado a atacar pero no tiene cartas -> salto de turno automático', { playerTurnsSinceLastAttack: turn.playerTurnsSinceLastAttack });
-            // El salto forzado no cuenta como inactividad ni como turno sin atacar.
-            this.endPlayerTurn(true);
-            return;
-        }
     }
 
     /**
@@ -122,6 +119,7 @@ export default class TurnController {
 
         // El cupo de acciones del rival se repone completo al empezar su turno.
         this.emitActionsLeft('opponent', turn.opponentActionsLeft);
+        this.scene.events.emit('update-attack-counter', 'opponent', turn.opponentActionsTaken + 1, turn.opponentMustAttackThisTurn, this.turnMoveLimit);
         this.startTurnTimer('opponent', turnStartedAt);
         this.scene.events.emit('update-turn-indicator', 'opponent');
 
@@ -174,6 +172,11 @@ export default class TurnController {
         return turn.canPlayerAct();
     }
 
+    canPlayerAttackNow() {
+        const { turn } = this.ctx;
+        return turn.state === 'player-turn' && turn.blockingAnimations === 0 && turn.canPlayerAttack();
+    }
+
     /**
      * Notifica a la UI cuántas acciones quedan disponibles.
      * @param {'player'|'opponent'} owner Dueño del turno.
@@ -199,11 +202,24 @@ export default class TurnController {
             return remaining;
         }
         this.emitActionsLeft('player', remaining);
+        this.scene.events.emit('update-attack-counter', 'player', turn.playerActionsTaken + 1, turn.playerMustAttackThisTurn, this.turnMoveLimit);
         if (remaining <= 0) {
-            console.log('[GameScene] Cuota de acciones agotada: el turno del JUGADOR termina');
-            this.endPlayerTurn();
+            if (turn.playerMustAttackThisTurn) {
+                const hasReadyAttacker = this.hasReadyPlayerAttacker();
+                const message = hasReadyAttacker
+                    ? 'Ataque obligatorio pendiente. Puedes atacar o preparar la jugada con una fusión.'
+                    : 'Ataque pendiente: coloca o fusiona una carta para preparar un atacante.';
+                this.scene.events.emit('gameplay-message', message);
+            } else {
+                console.log('[GameScene] Cuota de acciones agotada tras completar el ataque');
+                this.endPlayerTurn();
+            }
         }
         return remaining;
+    }
+
+    hasReadyPlayerAttacker() {
+        return this.scene.children.list.some(card => card.getData('isCardOnField') && !card.getData('isOpponentCard') && card.getData('blockedTurn') !== this.ctx.turn.playerTurnNumber);
     }
 
     /**
@@ -232,7 +248,7 @@ export default class TurnController {
             console.log('[GameScene] Jugador inactivo', { inactiveTurns: turnReport.inactiveTurns });
         }
         // Notificamos el contador a la UI
-        this.scene.events.emit('update-attack-counter', 'player', turn.playerTurnsSinceLastAttack + 1, turn.playerMustAttackThisTurn);
+        this.scene.events.emit('update-attack-counter', 'player', turn.playerActionsTaken, turn.playerMustAttackThisTurn, this.turnMoveLimit);
         // Las acciones sin usar se pierden: el siguiente turno repone el cupo.
         this.emitActionsLeft('player', 0);
 
@@ -279,7 +295,7 @@ export default class TurnController {
         if (!acted) {
             console.log('[GameScene] Oponente inactivo', { inactiveTurns: turnReport.inactiveTurns });
         }
-        this.scene.events.emit('update-attack-counter', 'opponent', turn.opponentTurnsSinceLastAttack + 1, turn.opponentMustAttackThisTurn);
+        this.scene.events.emit('update-attack-counter', 'opponent', turn.opponentActionsTaken + 1, turn.opponentMustAttackThisTurn, this.turnMoveLimit);
         this.emitActionsLeft('opponent', 0);
 
         // Comprobamos condiciones de victoria
@@ -390,7 +406,7 @@ export default class TurnController {
      * Ejecuta el poder de esencia solicitado por la UIScene (clic en un orbe
      * propio activo). Validación y efectos delegados en GameMatch (dominio);
      * la escena solo refresca la vista según el resultado.
-     * Los poderes no gastan acciones del turno: gastan las gemas de su coste.
+     * Los poderes no gastan acciones del turno: el costo depende del modo.
      * @param {string} essenceType Tipo de esencia ('fuego', 'agua', ...).
      */
     async useEssencePower(essenceType) {

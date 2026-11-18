@@ -64,19 +64,82 @@ class SequelizeProfileRepository {
         description: mission.description,
         target: mission.target,
         rewardGems: mission.rewardGems,
+        rewardCoins: mission.rewardCoins,
+        rewardAmount: Number(mission.rewardCoins) > 0 ? mission.rewardCoins : mission.rewardGems,
+        rewardCurrency: Number(mission.rewardCoins) > 0 ? 'coins' : 'gems',
         progress: row ? row.progress : 0,
         completed: row ? row.completed : false,
+        rewardClaimed: row ? Boolean(row.rewardClaimed) : false,
       };
     });
   }
 
   async saveMissionProgress(userId, missionId, { progress, completed }) {
-    const values = { userId, missionId, progress, completed };
-    if (completed) {
-      values.completedAt = new Date();
-    }
-    const [row] = await this.models.PlayerMission.upsert(values);
+    const defaults = { userId, missionId, progress, completed };
+    if (completed) defaults.completedAt = new Date();
+    const [row] = await this.models.PlayerMission.findOrCreate({
+      where: { userId, missionId },
+      defaults,
+    });
+    await row.update({
+      progress,
+      completed,
+      ...(completed ? { completedAt: row.completedAt || new Date() } : {}),
+    });
     return row;
+  }
+
+  async claimMissionReward(userId, missionId) {
+    const sequelize = this.models.PlayerStats.sequelize;
+    return sequelize.transaction(async (transaction) => {
+      const mission = await this.models.Mission.findByPk(missionId, { transaction });
+      if (!mission) return { ok: false, reason: 'not-found' };
+
+      const playerMission = await this.models.PlayerMission.findOne({
+        where: { userId, missionId },
+        transaction,
+        lock: transaction.LOCK && transaction.LOCK.UPDATE,
+      });
+      if (!playerMission || !playerMission.completed) {
+        return { ok: false, reason: 'not-completed' };
+      }
+      if (playerMission.rewardClaimed) {
+        return { ok: false, reason: 'already-claimed' };
+      }
+
+      const rewardCoins = Number(mission.rewardCoins) || 0;
+      const rewardGems = Number(mission.rewardGems) || 0;
+      const currency = rewardCoins > 0 ? 'coins' : 'gems';
+      const amount = rewardCoins > 0 ? rewardCoins : rewardGems;
+      if (amount <= 0) return { ok: false, reason: 'no-reward' };
+
+      // El cambio condicional garantiza una sola reclamación incluso si llegan
+      // dos solicitudes simultáneas para la misma misión.
+      const [claimed] = await this.models.PlayerMission.update({
+        rewardClaimed: true,
+        rewardClaimedAt: new Date(),
+      }, {
+        where: { userId, missionId, completed: true, rewardClaimed: false },
+        transaction,
+      });
+      if (!claimed) return { ok: false, reason: 'already-claimed' };
+
+      const [stats] = await this.models.PlayerStats.findOrCreate({
+        where: { userId },
+        defaults: { userId },
+        transaction,
+      });
+      await stats.increment(currency, { by: amount, transaction });
+      await stats.reload({ transaction });
+
+      return {
+        ok: true,
+        missionId,
+        currency,
+        amount,
+        wallet: { gems: Number(stats.gems) || 0, coins: Number(stats.coins) || 0 },
+      };
+    });
   }
 
   async listAchievements(userId) {

@@ -4,6 +4,7 @@ import { GAME_CONFIG } from '../helpers/constants.js';
 import GameComposer from '../app/GameComposer.js';
 import BoardRenderer from '../presentation/BoardRenderer.js';
 import HandDealAnimator from '../presentation/HandDealAnimator.js';
+import MatchStartCountdown from '../presentation/MatchStartCountdown.js';
 import CardInteraction from '../presentation/CardInteraction.js';
 import AttackController from '../presentation/AttackController.js';
 import BotTurnRunner from '../presentation/BotTurnRunner.js';
@@ -18,6 +19,7 @@ import { getGameMode } from '../game/gameModes.js';
 import { getBattleBackgroundTint, getPurchasedPowerCharges } from '../helpers/shopApi.js';
 import LANChatWidget from '../helpers/LANChatWidget.js';
 import { resolvePlayerData } from '../helpers/playerData.js';
+import LevelOneTutorial from '../presentation/LevelOneTutorial.js';
 
 /**
  * Escena principal del juego de cartas.
@@ -260,6 +262,7 @@ export default class GameScene extends Phaser.Scene {
             layout: this.layout
         });
         this.handDealAnimator = new HandDealAnimator(this, this.layout);
+        this.matchStartCountdown = new MatchStartCountdown(this);
         const interaction = new CardInteraction(this.ctx);
         const attackController = new AttackController(this.ctx);
         const botRunner = new BotTurnRunner(this.ctx);
@@ -449,18 +452,35 @@ export default class GameScene extends Phaser.Scene {
         this.events.on('start-game', () => this._requestMatchStart());
 
         this.events.off('initial-deal-complete');
-        this.initialDealPromise = this.handDealAnimator.dealInitialHands({
-            playerCards: this['player-cards'] || [],
-            opponentCards: this['opponent-cards'] || [],
+        this.initialDealPromise = this.matchStartCountdown.run().then((countdownCompleted) => {
+            if (!countdownCompleted) return false;
+            return this.handDealAnimator.dealInitialHands({
+                playerCards: this['player-cards'] || [],
+                opponentCards: this['opponent-cards'] || [],
+            }).then(() => true);
         }).catch((error) => {
             console.warn('[GameScene] No se pudo completar la animación de reparto:', error.message || error);
             (this['player-cards'] || []).forEach((card) => {
                 if (!card?.active) return;
+                const position = card.getData('startPosition');
+                if (position) card.setPosition(position.x, position.y);
                 if (card.isFaceDown) card.reveal();
                 card.setData('isRevealed', true);
-                card.setAlpha(1);
+                card.setDisplaySize(this.cardHandSize.width, this.cardHandSize.height)
+                    .setAngle(0).setAlpha(1);
+                card.syncPresentation?.();
             });
-        }).then(() => {
+            (this['opponent-cards'] || []).forEach((card) => {
+                if (!card?.active) return;
+                const position = card.getData('startPosition');
+                if (position) card.setPosition(position.x, position.y);
+                card.setDisplaySize(this.cardOpponentHandSize.width, this.cardOpponentHandSize.height)
+                    .setAngle(0).setAlpha(1);
+                card.syncPresentation?.();
+            });
+            return true;
+        }).then((dealCompleted) => {
+            if (!dealCompleted) return;
             if (!this.scene.isActive('GameScene')) return;
             this.initialDealComplete = true;
             this.localDealReady = true;
@@ -489,6 +509,10 @@ export default class GameScene extends Phaser.Scene {
             // remover listeners propios
             this.events.off('start-game');
             this.events.off('request-essence-power');
+            this.levelOneTutorial?.destroy();
+            this.levelOneTutorial = null;
+            this.matchStartCountdown?.destroy();
+            this.matchStartCountdown = null;
             this.chatWidget?.destroy();
             this.chatWidget = null;
             this.scale.off('resize', this._onGameResize, this);
@@ -520,6 +544,12 @@ export default class GameScene extends Phaser.Scene {
         if (!this.ctx || !this.initialDealComplete || this.ctx.turn.state !== 'pre-start') return;
 
         if (!this.isLAN) {
+            if (this.vsBot && this.botDifficulty === 1) {
+                this.levelOneTutorial ||= new LevelOneTutorial(this, this.playerData?.username, {
+                    onStartMatch: () => this.ctx?.turnController.beginMatch()
+                });
+                if (this.levelOneTutorial.start()) return;
+            }
             this.ctx.turnController.beginMatch();
             return;
         }
@@ -597,6 +627,7 @@ export default class GameScene extends Phaser.Scene {
         this.ctx.renderer.cardOpponentHandSize = this.cardOpponentHandSize;
         this.ctx.renderer.cardFieldSize = this.cardFieldSize;
         this.ctx.renderer.repositionAll(this.layout);
+
 
         if (this.arena?.active) this.arena.destroy();
         this.arena = createArena(this, {

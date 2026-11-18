@@ -31,16 +31,16 @@ async function request(path, options = {}) {
         },
     });
 
+    const text = await response.text();
+    const body = text ? JSON.parse(text) : null;
     if (response.status === 401) {
         console.warn('[profileApi] Token inválido o expirado.');
         return null;
     }
     if (!response.ok) {
-        throw new Error(`HTTP ${response.status}`);
+        throw new Error(body?.message || `HTTP ${response.status}`);
     }
-
-    const text = await response.text();
-    return text ? JSON.parse(text) : null;
+    return body;
 }
 
 export function fetchProfile() {
@@ -49,6 +49,10 @@ export function fetchProfile() {
 
 export function fetchMissions() {
     return request('/missions');
+}
+
+export function claimMissionReward(missionId) {
+    return request(`/missions/${encodeURIComponent(missionId)}/claim`, { method: 'POST', body: '{}' });
 }
 
 export function fetchAchievements() {

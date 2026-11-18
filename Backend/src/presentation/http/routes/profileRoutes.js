@@ -9,6 +9,7 @@ function buildProfileRouter(profileController, authMiddleware) {
 
   router.get('/', profileController.getProfile.bind(profileController));
   router.get('/missions', profileController.getMissions.bind(profileController));
+  router.post('/missions/:missionId/claim', profileController.claimMissionReward.bind(profileController));
   router.get('/ranking/lan', profileController.getLanRanking.bind(profileController));
   router.get('/achievements', profileController.getAchievements.bind(profileController));
 

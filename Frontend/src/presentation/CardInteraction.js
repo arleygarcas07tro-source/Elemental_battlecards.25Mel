@@ -32,7 +32,7 @@ export default class CardInteraction {
     onCardClicked(clickedCard) {
         const { turn } = this.ctx;
         if (turn.blockingAnimations > 0) return;
-        if (turn.state !== 'player-turn' || turn.playerActionsLeft <= 0) {
+        if (turn.state !== 'player-turn' || (turn.playerActionsLeft <= 0 && !turn.playerMustAttackThisTurn)) {
             this.deselectCard(false);
             return;
         }
@@ -62,6 +62,13 @@ export default class CardInteraction {
 
         // Si hacemos clic en la carta que ya estaba seleccionada...
         if (this.selectedCard === clickedCard) {
+            // Cuando el campo rival está vacío, volver a pulsar una carta propia
+            // del campo sirve como acceso directo al ataque directo. Esto evita
+            // depender de acertar el clic en una zona vacía del rival.
+            if (clickedCard.getData('isCardOnField') && !this.hasVisibleOpponentFieldCards()) {
+                this.ctx.attackController.handleDirectAttack(clickedCard);
+                return;
+            }
             this.deselectCard();
             return;
         }
@@ -96,8 +103,7 @@ export default class CardInteraction {
         } // Si no hay carta seleccionada, o la carta ya está en el campo, el clic en el tablero se encargará de deseleccionar.
         // Si hay una carta seleccionada y el oponente no tiene cartas, es un ataque directo.
         else if (this.selectedCard && this.selectedCard.getData('isCardOnField')) {
-            const opponentFieldCards = this.ctx.opponent.field.cards();
-            if (opponentFieldCards.length === 0) {
+            if (!this.hasVisibleOpponentFieldCards()) {
                 this.ctx.attackController.handleDirectAttack(this.selectedCard);
             }
         }
@@ -111,11 +117,22 @@ export default class CardInteraction {
         // Si tenemos una carta de nuestro campo seleccionada...
         if (this.selectedCard && this.selectedCard.getData('isCardOnField')) {
             // Y el oponente no tiene cartas en el campo...
-            const opponentHasCards = this.ctx.opponent.field.hasAny();
-            if (!opponentHasCards) {
+            if (!this.hasVisibleOpponentFieldCards()) {
                 this.ctx.attackController.handleDirectAttack(this.selectedCard);
             }
         }
+    }
+
+    /**
+     * Determina si hay una carta rival realmente visible en el campo.
+     * La presentación es la fuente correcta para decidir si un clic sobre
+     * un slot vacío debe convertirse en ataque directo.
+     * @returns {boolean}
+     */
+    hasVisibleOpponentFieldCards() {
+        return this.scene.children.list.some(card =>
+            card.getData('isCardOnField') && card.getData('isOpponentCard')
+        );
     }
 
     /**
@@ -185,11 +202,6 @@ export default class CardInteraction {
             console.log('[GameScene] No puedes gastar una acción ahora mismo.');
             return;
         }
-        if (turn.playerMustAttackThisTurn) {
-            this.scene.events.emit('gameplay-message', 'Estás obligado a atacar antes de colocar o fusionar cartas.');
-            console.log('[GameScene] Estás obligado a atacar este turno. No puedes colocar cartas.');
-            return;
-        }
 
         // Obtenemos los datos de la carta seleccionada y el índice del slot.
         const cardDataFromHand = cardObject.getData('cardData') || cardObject.cardData;
@@ -223,7 +235,8 @@ export default class CardInteraction {
             playedCardObject.setName(cardPlayed.instanceId);
             playedCardObject.setData('isCardOnField', true);
             playedCardObject.setData('fieldIndex', fieldIndex);
-            playedCardObject.setData('isRevealed', false);
+            if (playedCardObject.isFaceDown) playedCardObject.reveal();
+            playedCardObject.setData('isRevealed', true);
             playedCardObject.setData('startPosition', { x: dropZone.x, y: dropZone.y });
             playedCardObject.setSelectedVisual?.(false, false);
             if (playedCardObject.input) playedCardObject.input.enabled = false;
@@ -251,6 +264,7 @@ export default class CardInteraction {
 
                 console.log('[GameScene] Jugador colocó carta en el campo', { cardId: cardPlayed.id, instanceId: cardPlayed.instanceId, type: cardPlayed.type, level: cardPlayed.level, fieldIndex });
                 recordCollectedCard((playerData && playerData.username) || 'Jugador', cardPlayed.type, cardPlayed.level);
+                this.scene.events.emit('tutorial-card-placed');
                 if (this.ctx.isLAN && this.ctx.socket) {
                     if (debugSync) console.log('[GameScene][debug] emitiendo play_card payload', { payload: { type: 'play_card', card: cardPlayed, fieldIndex }, timestamp: Date.now() });
                     this.ctx.lan.emitGameEvent({ type: 'play_card', card: cardPlayed, fieldIndex });
@@ -288,10 +302,6 @@ export default class CardInteraction {
         // una animación bloqueante en curso.
         if (!turnController.canPlayerActNow()) {
             console.log('[GameScene] No puedes gastar una acción ahora mismo.');
-            return;
-        }
-        if (turn.playerMustAttackThisTurn) {
-            console.log('[GameScene] Estás obligado a atacar este turno. No puedes fusionar.');
             return;
         }
 
@@ -433,10 +443,6 @@ export default class CardInteraction {
         // animación bloqueante en curso.
         if (!turnController.canPlayerActNow()) {
             console.log('[GameScene] No puedes gastar una acción ahora mismo.');
-            return;
-        }
-        if (turn.playerMustAttackThisTurn) {
-            console.log('[GameScene] Estás obligado a atacar este turno. No puedes fusionar.');
             return;
         }
 

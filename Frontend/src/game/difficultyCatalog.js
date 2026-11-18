@@ -16,13 +16,16 @@ export const DIFFICULTY_LEVELS = [
     { level: 10, name: 'Mito',        icon: 'luz',     clr: '#ffd666', desc: 'Reacciona al máximo y usa poderes útiles.' }
 ];
 
+/** Multiplicador interno de estrategia del bot por nivel. */
+const DIFFICULTY_PERCENT = [25, 100, 200, 300, 400, 500, 700, 800, 900, 1000];
+
 /**
- * Multiplicador de criterio de la IA: nivel 1 = 25%, nivel 10 = 200%.
- * La progresión es lineal para que cada nivel aumente de forma predecible.
+ * Devuelve el multiplicador de estrategia del bot. Es un valor interno de IA,
+ * no una probabilidad de victoria ni un dato que deba mostrarse al jugador.
  * @param {number} level Dificultad del bot entre 1 y 10.
- * @returns {number} Porcentaje de efectividad estratégica.
+ * @returns {number} Porcentaje interno de efectividad estratégica.
  */
 export function getDifficultyPercent(level) {
     const normalizedLevel = Math.min(10, Math.max(1, Math.round(Number(level) || 1)));
-    return Math.round(25 + ((normalizedLevel - 1) * 175) / 9);
+    return DIFFICULTY_PERCENT[normalizedLevel - 1];
 }

@@ -5,7 +5,7 @@ import CardEntity from './CardEntity.js';
  * Catálogo de poderes de esencia. Cada esencia activada desbloquea un poder
  * que el jugador puede usar desde su orbe. Cada poder define sus propias
  * condiciones (esencia activa, Cementerio, mano rival, límite de usos por
- * turno) y su propio coste en gemas del mismo elemento.
+ * turno) y el coste que corresponda al modo activo.
  * Responsabilidad: reglas puras (qué poder existe, cuándo se puede usar, cuánto
  * cuesta y cómo se ejecutan los efectos AGUA/SOMBRA sobre el estado del
  * jugador). La notificación a la UI queda fuera de este servicio.
@@ -85,29 +85,49 @@ export default class EssencePowerService {
      * @param {object[]} ctx.graveyard - Cementerio del jugador.
      * @param {object[]} ctx.opponentHand - Mano del rival.
      * @param {number} [ctx.gemCount=0] - Gemas del elemento que posee el jugador.
+     * @param {boolean} [ctx.powerRequiresGems=true] - Si el modo cobra gemas.
+     * @param {boolean} [ctx.requiresPurchasedCharge=false] - Si requiere carga de tienda.
      * @param {number} [ctx.usesThisTurn=0] - Usos del poder en el turno actual.
      * @returns {{ok: boolean, reason?: string, name?: string, gemCost?: number}}
      */
     static plan(type, ctx = {}) {
-        const { isPlayerTurn, essenceActive, graveyard = [], opponentHand = [], gemCount = 0, usesThisTurn = 0, purchasedUseAvailable = false } = ctx;
+        const {
+            isPlayerTurn,
+            essenceActive,
+            graveyard = [],
+            opponentHand = [],
+            gemCount = 0,
+            usesThisTurn = 0,
+            purchasedUseAvailable = false,
+            powerRequiresGems = true,
+            requiresPurchasedCharge = false
+        } = ctx;
         const power = POWERS[type];
         if (!power) return { ok: false, reason: 'tipo-desconocido' };
         if (!isPlayerTurn) return { ok: false, reason: 'es-tu-turno', name: power.name, gemCost: power.gemCost };
-        if (!essenceActive) return { ok: false, reason: 'esencia-inactiva', name: power.name, gemCost: power.gemCost };
+        if (!essenceActive && !requiresPurchasedCharge) {
+            return { ok: false, reason: 'esencia-inactiva', name: power.name, gemCost: power.gemCost };
+        }
         if (power.needsGraveyard && graveyard.length === 0) {
             return { ok: false, reason: 'sin-cementerio', name: power.name, gemCost: power.gemCost };
         }
         if (power.needsOpponentHand && opponentHand.length === 0) {
             return { ok: false, reason: 'rival-sin-mano', name: power.name, gemCost: power.gemCost };
         }
-        const usedPurchasedCharge = usesThisTurn >= power.usesPerTurn && purchasedUseAvailable;
-        if (usesThisTurn >= power.usesPerTurn && !usedPurchasedCharge) {
+        const usedPurchasedCharge = requiresPurchasedCharge
+            ? purchasedUseAvailable
+            : usesThisTurn >= power.usesPerTurn && purchasedUseAvailable;
+        if (requiresPurchasedCharge && !usedPurchasedCharge) {
+            return { ok: false, reason: 'sin-carga-tienda', name: power.name, gemCost: 0 };
+        }
+        if (!requiresPurchasedCharge && usesThisTurn >= power.usesPerTurn && !usedPurchasedCharge) {
             return { ok: false, reason: 'poder-agotado', name: power.name, gemCost: power.gemCost };
         }
-        if (gemCount < power.gemCost) {
-            return { ok: false, reason: 'sin-gemas', name: power.name, gemCost: power.gemCost };
+        const gemCost = powerRequiresGems ? power.gemCost : 0;
+        if (gemCount < gemCost) {
+            return { ok: false, reason: 'sin-gemas', name: power.name, gemCost };
         }
-        return { ok: true, name: power.name, gemCost: power.gemCost, usesPerTurn: power.usesPerTurn, usedPurchasedCharge };
+        return { ok: true, name: power.name, gemCost, usesPerTurn: power.usesPerTurn, usedPurchasedCharge };
     }
 
     /**

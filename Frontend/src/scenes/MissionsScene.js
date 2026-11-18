@@ -3,31 +3,43 @@ import { getMissionProgress } from '../helpers/playerProgress.js';
 import DomSceneBase from './ui/DomSceneBase.js';
 import { elementByKey, elementsNavHTML, energyParticlesHTML } from './ui/elementCatalog.js';
 import { MISSIONS } from '../game/missionsCatalog.js';
+import { claimMissionReward, fetchMissions, fetchProfile, isAuthenticated } from '../helpers/profileApi.js';
+import MissionRewardAnimator from '../helpers/MissionRewardAnimator.js';
 
 export default class MissionsScene extends DomSceneBase {
     constructor() {
         super('MissionsScene');
         this.playerData = null;
         this.listeners = [];
+        this.missions = [];
+        this.wallet = { gems: 0, coins: 0 };
+        this.selectedMissionId = null;
+        this.claimingMission = false;
+        this.rewardAnimator = new MissionRewardAnimator();
     }
 
     init(data) {
         this.playerData = data.playerData || data || {};
+        this.selectedMissionId = null;
+        this.claimingMission = false;
+        this.wallet = { gems: 0, coins: 0 };
     }
 
     create() {
         // Progreso real de las misiones, derivado de las partidas jugadas.
         const username = (this.playerData && this.playerData.username) || 'Jugador';
         const missionProgress = getMissionProgress(username);
-        const missions = MISSIONS.map(mission => ({
+        this.missions = MISSIONS.map(mission => ({
             ...mission,
-            progress: missionProgress[mission.id] || 0
+            progress: missionProgress[mission.id] || 0,
+            completed: (missionProgress[mission.id] || 0) >= mission.target,
+            rewardClaimed: false,
         }));
 
         // Energía flotante del fondo: motas luminosas posicionadas en JS.
         const particles = energyParticlesHTML();
 
-        const missionsHtml = missions.map((mission, index) => {
+        const missionsHtml = this.missions.map((mission, index) => {
             const el = elementByKey(mission.element);
             const percent = Math.min(100, Math.round((mission.progress / mission.target) * 100));
             const completed = mission.progress >= mission.target;
@@ -51,7 +63,7 @@ export default class MissionsScene extends DomSceneBase {
                     </div>
                     <div class="mission-meta">
                         <span class="mission-counter">${Math.min(mission.progress, mission.target)} / ${mission.target}</span>
-                        <span class="mission-reward">💎 +${mission.reward} ${mission.unit}</span>
+                        <span class="mission-reward">${this.rewardLabel(mission)}</span>
                     </div>
                     <button class="btn-details" data-id="${mission.id}">Ver detalles</button>
                 </article>
@@ -175,7 +187,6 @@ export default class MissionsScene extends DomSceneBase {
                 max-width: 560px;
             }
             .btn-home {
-                margin-left: auto;
                 display: inline-flex;
                 align-items: center;
                 gap: 9px;
@@ -197,6 +208,11 @@ export default class MissionsScene extends DomSceneBase {
                 background: linear-gradient(135deg, rgba(255, 215, 90, 0.24), rgba(255, 215, 90, 0.08));
                 box-shadow: 0 0 30px rgba(255, 215, 90, 0.22);
             }
+            .top-actions { display:flex; align-items:center; gap:10px; margin-left:auto; }
+            .mission-wallet { display:flex; align-items:center; gap:8px; }
+            .wallet-counter { display:inline-flex; align-items:center; gap:7px; padding:10px 12px; border:1px solid rgba(255,255,255,.14); border-radius:12px; background:rgba(7,10,27,.62); color:#fff; font-size:13px; font-weight:700; box-shadow:inset 0 1px rgba(255,255,255,.05); }
+            .wallet-counter.gems { color:#a4edff; border-color:rgba(110,220,255,.28); }
+            .wallet-counter.coins { color:#ffe39a; border-color:rgba(255,215,90,.28); }
 
             /* ---------- GRILLA DE MISIONES ---------- */
             .missions {
@@ -492,6 +508,8 @@ export default class MissionsScene extends DomSceneBase {
                 transition: transform 160ms ease, box-shadow 160ms ease;
             }
             .btn-close:hover { transform: translateY(-2px); box-shadow: 0 0 22px rgba(255, 215, 90, 0.2); }
+            .btn-close:disabled { opacity:.65; cursor:wait; transform:none; }
+            .modal-feedback { min-height:18px; margin:10px 0 0; color:#9deeff; font-size:12px; }
 
             /* ---------- ANIMACIONES ---------- */
             @keyframes floatY {
@@ -524,6 +542,9 @@ export default class MissionsScene extends DomSceneBase {
                 .brand .logo { width: 36px; height: 36px; border-radius: 10px; }
                 .brand-kicker, .brand-block p { display: none; }
                 .brand h1 { font-size: 22px; }
+                .top-actions { gap:6px; }
+                .mission-wallet { gap:4px; }
+                .wallet-counter { padding:6px 8px; font-size:10px; }
                 .btn-home { padding: 7px 11px; font-size: 11px; border-radius: 10px; }
                 .missions { grid-template-columns: repeat(3, minmax(0, 1fr)); grid-template-rows: repeat(2, minmax(0, 1fr)); gap: 7px; padding: 4px 10px 6px; overflow-y: auto; }
                 .mission-card { min-height: 0; gap: 5px; padding: 8px 10px; border-radius: 13px; }
@@ -559,10 +580,16 @@ export default class MissionsScene extends DomSceneBase {
                     <div class="brand-block">
                         <span class="brand-kicker">Elemental Battle Cards</span>
                         <h1>Misiones</h1>
-                        <p>Completa objetivos elementales y gana gemas para reforzar tu colección.</p>
+                        <p>Completa objetivos elementales y reclama recompensas para reforzar tu colección.</p>
                     </div>
                 </div>
-                <button class="btn-home" id="btn-home">🏠 Inicio</button>
+                <div class="top-actions">
+                    <div class="mission-wallet" aria-label="Saldo de cuenta">
+                        <span class="wallet-counter gems" id="wallet-gems" aria-label="Gemas">💎 <b id="wallet-gems-value">—</b></span>
+                        <span class="wallet-counter coins" id="wallet-coins" aria-label="Monedas">🪙 <b id="wallet-coins-value">—</b></span>
+                    </div>
+                    <button class="btn-home" id="btn-home">🏠 Inicio</button>
+                </div>
             </header>
 
             <main class="missions">
@@ -589,12 +616,14 @@ export default class MissionsScene extends DomSceneBase {
                         <span class="modal-counter" id="modal-counter">0 / 1</span>
                         <span class="modal-reward" id="modal-reward">+50 gemas</span>
                     </div>
-                    <button class="btn-close" id="btn-close-modal">Cerrar</button>
+                    <button class="btn-close" id="btn-mission-action">Cerrar</button>
+                    <p class="modal-feedback" id="modal-feedback" role="status" aria-live="polite"></p>
                 </div>
             </div>
         </div>`;
 
         const node = this.mountDOM(html, { flex: true });
+        this.renderWallet(node);
 
         this.bind('#btn-home', () => this.scene.start('HomeScenes', { playerData: this.playerData }));
         this.bind('[data-nav="settings"]', () => this.scene.start('SettingsScene', { playerData: this.playerData }));
@@ -605,8 +634,9 @@ export default class MissionsScene extends DomSceneBase {
         const detailButtons = node.querySelectorAll('.btn-details');
 
         const openModal = (missionId) => {
-            const mission = missions.find(m => m.id === missionId);
+            const mission = this.missions.find(m => m.id === missionId);
             if (!mission || !modal) return;
+            this.selectedMissionId = missionId;
             const el = elementByKey(mission.element);
             const percent = Math.min(100, Math.round((mission.progress / mission.target) * 100));
             modalCard.style.setProperty('--el', el.color);
@@ -618,7 +648,9 @@ export default class MissionsScene extends DomSceneBase {
             node.querySelector('#modal-desc').textContent = mission.desc;
             node.querySelector('#modal-bar').style.width = percent + '%';
             node.querySelector('#modal-counter').textContent = `${Math.min(mission.progress, mission.target)} / ${mission.target}`;
-            node.querySelector('#modal-reward').textContent = `+${mission.reward} ${mission.unit}`;
+            node.querySelector('#modal-reward').textContent = this.rewardLabel(mission);
+            node.querySelector('#modal-feedback').textContent = '';
+            this.updateMissionAction(node, mission);
             modal.hidden = false;
         };
 
@@ -630,9 +662,128 @@ export default class MissionsScene extends DomSceneBase {
             this.track(btn, () => { playSfx('click', this); openModal(btn.getAttribute('data-id')); }, 'click');
         });
 
-        this.bindElement(node.querySelector('#btn-close-modal'), closeModal);
+        this.bindElement(node.querySelector('#btn-mission-action'), () => {
+            this.handleMissionAction(node, closeModal);
+        });
         this.bindElement(modal, (ev) => {
             if (ev.target === modal) closeModal();
         });
+
+        this.refreshAccountState(node, openModal);
+    }
+
+    rewardLabel(mission) {
+        const isCoinReward = String(mission.unit || '').toLowerCase().includes('moned')
+            || mission.rewardCurrency === 'coins';
+        const icon = isCoinReward ? '🪙' : '💎';
+        const unit = isCoinReward ? 'monedas' : 'gemas';
+        return `${icon} +${mission.reward} ${unit}`;
+    }
+
+    updateMissionAction(node, mission) {
+        const button = node.querySelector('#btn-mission-action');
+        if (!button) return;
+        const canClaim = mission.completed && !mission.rewardClaimed;
+        button.textContent = canClaim ? 'Obtener' : 'Cerrar';
+        button.disabled = this.claimingMission;
+        button.setAttribute('aria-label', canClaim ? 'Obtener recompensa de misión' : 'Cerrar detalles de misión');
+    }
+
+    refreshMissionCard(node, mission) {
+        const card = Array.from(node.querySelectorAll('.mission-card'))
+            .find((item) => item.dataset.mission === mission.id);
+        if (!card) return;
+        const completed = Boolean(mission.completed);
+        const percent = Math.min(100, Math.round((mission.progress / mission.target) * 100));
+        card.classList.toggle('is-done', completed);
+        card.querySelector('.mission-state').textContent = mission.rewardClaimed
+            ? 'Recompensa obtenida'
+            : completed ? 'Recompensa disponible' : 'En progreso';
+        card.querySelector('.mission-counter').textContent = `${Math.min(mission.progress, mission.target)} / ${mission.target}`;
+        card.querySelector('.mission-fill').style.width = `${percent}%`;
+        card.querySelector('.mission-reward').textContent = this.rewardLabel(mission);
+    }
+
+    async refreshAccountState(node, openModal) {
+        const [missionsResult, profileResult] = await Promise.allSettled([fetchMissions(), fetchProfile()]);
+        if (!node.isConnected) return;
+
+        if (missionsResult.status === 'fulfilled' && Array.isArray(missionsResult.value)) {
+            missionsResult.value.forEach((remote) => {
+                const mission = this.missions.find((item) => item.id === remote.id);
+                if (!mission) return;
+                mission.progress = Number(remote.progress) || 0;
+                mission.completed = Boolean(remote.completed);
+                mission.rewardClaimed = Boolean(remote.rewardClaimed);
+                mission.rewardCurrency = remote.rewardCurrency || 'gems';
+                mission.reward = String(remote.rewardAmount ?? remote.rewardGems ?? mission.reward);
+                mission.unit = mission.rewardCurrency === 'coins' ? 'monedas' : 'gemas';
+                this.refreshMissionCard(node, mission);
+            });
+        }
+
+        if (profileResult.status === 'fulfilled' && profileResult.value) {
+            this.wallet = {
+                gems: Number(profileResult.value.gems) || 0,
+                coins: Number(profileResult.value.coins) || 0,
+            };
+            this.renderWallet(node);
+        }
+
+        if (this.selectedMissionId && !node.querySelector('#mission-modal').hidden) {
+            openModal(this.selectedMissionId);
+        }
+    }
+
+    renderWallet(node) {
+        const gems = node.querySelector('#wallet-gems-value');
+        const coins = node.querySelector('#wallet-coins-value');
+        if (gems) gems.textContent = String(this.wallet.gems);
+        if (coins) coins.textContent = String(this.wallet.coins);
+    }
+
+    async handleMissionAction(node, closeModal) {
+        const mission = this.missions.find((item) => item.id === this.selectedMissionId);
+        if (!mission || !mission.completed || mission.rewardClaimed) {
+            closeModal();
+            return;
+        }
+        if (!isAuthenticated()) {
+            node.querySelector('#modal-feedback').textContent = 'Inicia sesión para reclamar y guardar esta recompensa.';
+            return;
+        }
+        if (this.claimingMission) return;
+
+        this.claimingMission = true;
+        this.updateMissionAction(node, mission);
+        const feedback = node.querySelector('#modal-feedback');
+        feedback.textContent = 'Preparando tu recompensa…';
+        try {
+            const result = await claimMissionReward(mission.id);
+            if (!result || !result.ok) throw new Error('No se pudo confirmar la recompensa. Inténtalo de nuevo.');
+
+            const currency = result.currency === 'coins' ? 'coins' : 'gems';
+            const target = node.querySelector(currency === 'coins' ? '#wallet-coins' : '#wallet-gems');
+            await this.rewardAnimator.animate({
+                source: node.querySelector('#modal-reward'),
+                target,
+                currency,
+                amount: result.amount,
+            });
+
+            mission.rewardClaimed = true;
+            this.wallet = {
+                gems: Number(result.wallet?.gems) || 0,
+                coins: Number(result.wallet?.coins) || 0,
+            };
+            this.renderWallet(node);
+            this.refreshMissionCard(node, mission);
+            feedback.textContent = `${currency === 'coins' ? 'Monedas' : 'Gemas'} añadidas a tu saldo.`;
+        } catch (error) {
+            feedback.textContent = error.message || 'No se pudo reclamar la recompensa.';
+        } finally {
+            this.claimingMission = false;
+            this.updateMissionAction(node, mission);
+        }
     }
 }

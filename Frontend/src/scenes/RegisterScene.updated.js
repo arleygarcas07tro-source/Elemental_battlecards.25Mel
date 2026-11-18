@@ -1,10 +1,13 @@
 import Phaser from 'phaser';
 import { buildApiUrl } from '../helpers/networkConfig.js';
+import { passwordMeetsRequirements } from '../helpers/passwordPolicy.js';
 import { fitVideoInsideViewport } from './ui/videoBackground.js';
 
 const scriptURL = buildApiUrl('auth/register');
 const verificationURL = buildApiUrl('auth/verify-email');
 const resendCodeURL = buildApiUrl('auth/resend-code');
+const EYE_OPEN_ICON = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7S2 12 2 12Z"></path><circle cx="12" cy="12" r="3"></circle></svg>';
+const EYE_CLOSED_ICON = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="m3 3 18 18"></path><path d="M10.6 10.6a2 2 0 0 0 2.8 2.8"></path><path d="M9.9 5.2A11.4 11.4 0 0 1 12 5c6.4 0 10 7 10 7a15 15 0 0 1-3 3.8"></path><path d="M6.6 6.6C3.7 8.2 2 12 2 12s3.6 7 10 7c1.3 0 2.5-.3 3.5-.8"></path></svg>';
 
 export default class RegisterSceneUpdated extends Phaser.Scene {
     constructor() {
@@ -58,6 +61,35 @@ export default class RegisterSceneUpdated extends Phaser.Scene {
                     font-size: 16px;
                     box-shadow: 0 0 8px rgba(0,0,0);
                 }
+                .password-control { position: relative; }
+                .password-control input { padding-right: 48px; }
+                .register-ui .password-toggle {
+                    position: absolute;
+                    top: 50%;
+                    right: 4px;
+                    display: grid;
+                    place-items: center;
+                    width: 38px;
+                    height: 38px;
+                    min-height: 38px;
+                    margin: 0;
+                    padding: 8px;
+                    transform: translateY(-50%);
+                    border: 0;
+                    border-radius: 8px;
+                    background: transparent;
+                    box-shadow: none;
+                    color: #f4d47a;
+                }
+                .register-ui .password-toggle svg { width: 20px; height: 20px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+                .register-ui .password-toggle:hover { transform: translateY(-50%) scale(1.05); background: rgba(255, 215, 122, 0.12); box-shadow: none; }
+                .register-ui .password-toggle:active { transform: translateY(-50%); }
+                .password-match-feedback { min-height: 16px; margin: 2px 0 0; text-align: left; font-size: 11px; line-height: 1.35; }
+                .password-match-feedback.is-invalid { color: #ffaaa0; }
+                .password-match-feedback.is-valid { color: #9ce9b5; }
+                .register-ui input.input-invalid { border-color: #ff6b6b; box-shadow: 0 0 0 1px rgba(255, 75, 75, 0.75), 0 0 10px rgba(255, 65, 65, 0.28); }
+                .register-ui input.input-mismatch { border-color: #ff6b6b; box-shadow: 0 0 0 1px rgba(255, 75, 75, 0.75), 0 0 10px rgba(255, 65, 65, 0.28); }
+                .register-ui input.input-match { border-color: #75d99a; box-shadow: 0 0 0 1px rgba(91, 220, 133, 0.55), 0 0 10px rgba(91, 220, 133, 0.18); }
                 .register-ui .label { 
                     display: block;
                     text-align: left;
@@ -150,12 +182,19 @@ export default class RegisterSceneUpdated extends Phaser.Scene {
                         <input name="email" type="email" autocomplete="email">
                     </div>
                     <div>
-                        <label class="label">Contraseña</label>
-                        <input name="password" type="password" autocomplete="new-password">
+                        <label class="label" for="register-password">Contraseña</label>
+                        <div class="password-control">
+                            <input id="register-password" name="password" type="password" autocomplete="new-password" aria-label="Contraseña">
+                            <button type="button" class="password-toggle" data-password-toggle="password" aria-label="Mostrar contraseña" aria-pressed="false">${EYE_OPEN_ICON}</button>
+                        </div>
                     </div>
                     <div style="margin-bottom: 16px;">
-                        <label class="label">Confirmar contraseña</label>
-                        <input name="passwordConfirm" type="password" autocomplete="new-password">
+                        <label class="label" for="register-password-confirm">Confirmar contraseña</label>
+                        <div class="password-control">
+                            <input id="register-password-confirm" name="passwordConfirm" type="password" autocomplete="new-password" aria-describedby="password-match-feedback">
+                            <button type="button" class="password-toggle" data-password-toggle="passwordConfirm" aria-label="Mostrar confirmación de contraseña" aria-pressed="false">${EYE_OPEN_ICON}</button>
+                        </div>
+                        <p class="password-match-feedback" id="password-match-feedback" aria-live="polite"></p>
                     </div>
 
                     <button type="button" class="btn-create" id="create-btn">Crear cuenta</button>
@@ -187,7 +226,47 @@ export default class RegisterSceneUpdated extends Phaser.Scene {
         const emailInput = this.formElement.getChildByName('email') || this.formElement.node.querySelector('input[name="email"]');
         const passwordInput = this.formElement.getChildByName('password') || this.formElement.node.querySelector('input[name="password"]');
         const passwordConfirmInput = this.formElement.getChildByName('passwordConfirm') || this.formElement.node.querySelector('input[name="passwordConfirm"]');
+        const passwordMatchFeedback = this.formElement.node.querySelector('#password-match-feedback');
         this.pendingRegistration = null;
+
+        const updatePasswordConfirmation = () => {
+            const confirmation = passwordConfirmInput.value;
+            const hasConfirmation = confirmation.length > 0;
+            const matches = hasConfirmation && passwordInput.value === confirmation;
+            passwordConfirmInput.classList.toggle('input-mismatch', hasConfirmation && !matches);
+            passwordConfirmInput.classList.toggle('input-match', matches);
+            passwordMatchFeedback.classList.toggle('is-invalid', hasConfirmation && !matches);
+            passwordMatchFeedback.classList.toggle('is-valid', matches);
+            passwordMatchFeedback.textContent = !hasConfirmation
+                ? ''
+                : matches
+                    ? 'Las contraseñas coinciden.'
+                    : 'Las contraseñas no coinciden.';
+        };
+
+        const updatePasswordValidity = () => {
+            const password = passwordInput.value;
+            const invalid = password.length > 0 && !passwordMeetsRequirements(password);
+            passwordInput.classList.toggle('input-invalid', invalid);
+            passwordInput.setAttribute('aria-invalid', String(invalid));
+            updatePasswordConfirmation();
+        };
+
+        passwordInput.addEventListener('input', updatePasswordValidity);
+        passwordConfirmInput.addEventListener('input', updatePasswordConfirmation);
+
+        this.formElement.node.querySelectorAll('[data-password-toggle]').forEach((toggle) => {
+            const input = toggle.dataset.passwordToggle === 'password'
+                ? passwordInput
+                : passwordConfirmInput;
+            toggle.addEventListener('click', () => {
+                const isVisible = input.type === 'password';
+                input.type = isVisible ? 'text' : 'password';
+                toggle.setAttribute('aria-pressed', String(isVisible));
+                toggle.setAttribute('aria-label', `${isVisible ? 'Ocultar' : 'Mostrar'} ${input === passwordInput ? 'contraseña' : 'confirmación de contraseña'}`);
+                toggle.innerHTML = isVisible ? EYE_CLOSED_ICON : EYE_OPEN_ICON;
+            });
+        });
 
         createBtn.addEventListener('click', async () => {
             const username = usernameInput.value.trim();
@@ -196,7 +275,17 @@ export default class RegisterSceneUpdated extends Phaser.Scene {
             const passwordConfirm = passwordConfirmInput.value;
 
             if (!username || !email || !password || !passwordConfirm) { alert('Completa todos los campos.'); return; }
-            if (password !== passwordConfirm) { alert('Las contraseñas no coinciden.'); return; }
+            if (!passwordMeetsRequirements(password)) {
+                updatePasswordValidity();
+                alert('La contraseña debe tener mínimo 8 caracteres, una mayúscula, una minúscula y un carácter especial.');
+                passwordInput.focus();
+                return;
+            }
+            if (password !== passwordConfirm) {
+                updatePasswordConfirmation();
+                passwordConfirmInput.focus();
+                return;
+            }
             // simple email check
             if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) { alert('Introduce un email válido.'); return; }
 
@@ -320,14 +409,6 @@ export default class RegisterSceneUpdated extends Phaser.Scene {
         this.logoImage.setScale(Math.min(0.7, (this.scale.width / 800)));
         this.logoImage.setVisible(this.scale.height > 560);
 
-        // Copyright
-        this.copyText = this.add.text(this.scale.width / 2, this.scale.height - 18, 'Todos los derechos reservados', {
-            fontFamily: 'Segoe UI, Tahoma, sans-serif',
-            fontSize: '14px',
-            color: '#ffd77a'
-        }).setOrigin(0.5, 0.5).setDepth(1);
-        this.copyText.setVisible(this.scale.height > 520);
-
         // Reposicionar el logo y formulario al redimensionar la ventana
         this.scale.on('resize', this.resize, this);
     }
@@ -338,9 +419,5 @@ export default class RegisterSceneUpdated extends Phaser.Scene {
         if (this.leftButtonsElement) this.leftButtonsElement.setPosition(90, height - 120);
         if (this.logoImage) this.logoImage.setPosition(width / 2, height * 0.18);
         if (this.logoImage) this.logoImage.setVisible(height > 560);
-        if (this.copyText) {
-            this.copyText.setPosition(width / 2, height - 18);
-            this.copyText.setVisible(height > 520);
-        }
     }
 }
