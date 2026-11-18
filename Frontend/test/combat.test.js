@@ -3,50 +3,50 @@ import assert from 'node:assert/strict';
 
 import { resolveCombat } from '../src/helpers/combat.js';
 
-test('combat: nivel 1 contra nivel 1 causa 5% de daño neutral', () => {
+test('combat: nivel 1 contra nivel 1 causa el daño base neutral', () => {
     const defender = { type: 'luz', level: 1, health: 100 };
     const result = resolveCombat({ type: 'fuego', level: 1 }, defender);
 
-    assert.equal(result.damage, 5);
-    assert.equal(result.defenderHealth, 95);
+    assert.equal(result.damage, 12);
+    assert.equal(result.defenderHealth, 88);
     assert.equal(result.destroyed, false);
-    assert.equal(defender.health, 95);
+    assert.equal(defender.health, 88);
 });
 
 test('combat: el nivel de la carta no cambia su vida máxima', () => {
     const defender = { type: 'luz', level: 2, health: 100, maxHealth: 100 };
     const result = resolveCombat({ type: 'fuego', level: 1 }, defender);
 
-    assert.equal(result.damage, 5);
-    assert.equal(result.defenderHealth, 95);
-    assert.equal(defender.health, 95);
+    assert.equal(result.damage, 9);
+    assert.equal(result.defenderHealth, 91);
+    assert.equal(defender.health, 91);
 });
 
-test('combat: la ventaja elemental suma 5 puntos porcentuales', () => {
+test('combat: la ventaja elemental suma 5 puntos al daño base', () => {
     const result = resolveCombat(
         { type: 'fuego', level: 1 },
         { type: 'planta', level: 1, health: 100 }
     );
 
-    assert.equal(result.damage, 10);
-    assert.equal(result.defenderHealth, 90);
+    assert.equal(result.damage, 17);
+    assert.equal(result.defenderHealth, 83);
 });
 
-test('combat: la desventaja elemental resta 5 puntos porcentuales y el daño no puede ser negativo', () => {
+test('combat: la desventaja elemental resta 5 puntos al daño base', () => {
     const result = resolveCombat(
         { type: 'planta', level: 1 },
         { type: 'fuego', level: 1, health: 100 }
     );
 
-    assert.equal(result.damage, 0);
-    assert.equal(result.defenderHealth, 100);
+    assert.equal(result.damage, 7);
+    assert.equal(result.defenderHealth, 93);
 });
 
 test('combat: aplica la tabla de daño por nivel del atacante y defensor', () => {
     const expected = [
-        [5, 5, 2],
-        [25, 15, 10],
-        [50, 35, 25]
+        [12, 9, 6],
+        [28, 24, 18],
+        [48, 42, 36]
     ];
 
     expected.forEach((row, attackerIndex) => {
@@ -83,7 +83,7 @@ test('combat: la carta se destruye cuando su vida llega a cero', () => {
     const defender = { type: 'planta', level: 1, health: 10 };
     const result = resolveCombat({ type: 'fuego', level: 1 }, defender);
 
-    assert.equal(result.damage, 10);
+    assert.equal(result.damage, 17);
     assert.equal(result.defenderHealth, 0);
     assert.equal(result.destroyed, true);
     assert.equal(result.winner, 'attacker');

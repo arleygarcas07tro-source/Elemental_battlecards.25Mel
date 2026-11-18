@@ -62,10 +62,10 @@ test('GameMatch.resolvePlayerAttack aplica daño por ventaja elemental', () => {
     const resolution = match.resolvePlayerAttack({ attackerIndex: 0, defenderIndex: 0 });
 
     assert.ok(resolution);
-    assert.equal(resolution.result.damage, 10);
-    assert.equal(resolution.result.defenderHealth, 90);
+    assert.equal(resolution.result.damage, 17);
+    assert.equal(resolution.result.defenderHealth, 83);
     assert.equal(resolution.result.winner, 'none');
-    assert.equal(match.opponent.field.get(0).health, 90);
+    assert.equal(match.opponent.field.get(0).health, 83);
     assert.equal(resolution.attackerIndex, 0);
     assert.equal(resolution.defenderIndex, 0);
 });
@@ -186,7 +186,7 @@ test('GameMatch.useEssencePower no consume acciones del turno', () => {
     assert.equal(match.turn.playerActionsRemaining, GAME_CONFIG.ACTIONS_PER_TURN);
 });
 
-test('GameMatch: consumePlayerAction descuenta del cupo y bloquea al agotarlo', () => {
+test('GameMatch: al gastar dos acciones exige atacar como tercera acción', () => {
     const match = makeMatch();
     match.startPlayerTurn();
 
@@ -196,6 +196,11 @@ test('GameMatch: consumePlayerAction descuenta del cupo y bloquea al agotarlo', 
 
     match.consumePlayerAction();
     assert.equal(match.turn.playerActionsTaken, 2);
+    assert.equal(match.turn.playerMustAttackThisTurn, true);
+    assert.equal(match.turn.canPlayerAct(), true);
+
+    match.markPlayerAttackConsumed();
+    assert.equal(match.turn.playerMustAttackThisTurn, false);
     assert.equal(match.turn.canPlayerAct(), false);
 });
 

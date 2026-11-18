@@ -5,11 +5,11 @@ import BotAI from '../src/game/BotAI.js';
 import GameMatch from '../src/game/GameMatch.js';
 import { GAME_CONFIG, CARD_TYPES } from '../src/helpers/constants.js';
 
-test('BotAI: dificultad por defecto 3 y threshold 5', () => {
+test('BotAI: dificultad por defecto 3 y threshold estratégico actual', () => {
     const bot = new BotAI();
 
     assert.equal(bot.difficulty, 3);
-    assert.equal(bot.getAttackThreshold(), 5);
+    assert.equal(bot.getAttackThreshold(), 1);
     assert.ok(bot.actionDelay >= 400 && bot.actionDelay <= 560);
     assert.equal(GAME_CONFIG.BOT_NEXT_ACTION_DELAY_MS, 250);
 });
@@ -24,11 +24,11 @@ test('BotAI: mantiene una breve pausa acorde a la dificultad', () => {
     assert.ok(hardBot.actionDelay >= 75 && hardBot.actionDelay <= 140);
 });
 
-test('BotAI: dificultad máxima sin delay y con bonus de puntuación', () => {
+test('BotAI: dificultad máxima con delay mínimo, umbral bajo y bonus progresivo', () => {
     const bot = new BotAI(10);
 
     assert.ok(bot.actionDelay >= 20 && bot.actionDelay <= 55);
-    assert.equal(bot.scoreModifier, 10);
+    assert.ok(bot.scoreModifier >= 6 && bot.scoreModifier <= 10);
     assert.equal(bot.getAttackThreshold(), -10);
 });
 
@@ -38,8 +38,8 @@ test('BotAI: setDifficulty recalcula delay y modificador', () => {
 
     bot.setDifficulty(5);
 
-    assert.equal(bot.scoreModifier, 0);
-    assert.equal(bot.getAttackThreshold(), 0);
+    assert.ok(bot.scoreModifier >= 1 && bot.scoreModifier <= 3);
+    assert.equal(bot.getAttackThreshold(), -2);
     assert.equal(typeof before, 'number');
 });
 
@@ -66,7 +66,7 @@ test('BotAI: findBestAttack puede dañar cartas neutrales sin mutar su vida', ()
 
     assert.equal(best.attacker.index, 0);
     assert.equal(best.defender.index, 0);
-    assert.equal(best.score, 5);
+    assert.equal(best.score, 12);
     assert.equal(best.defender.card.health, undefined);
 });
 

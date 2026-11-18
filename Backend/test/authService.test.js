@@ -15,6 +15,8 @@ class QuietLogger extends ILogger {
 
 function makeDeps() {
   const users = [];
+  const pendingRegistrations = [];
+  const sentVerificationCodes = [];
   const userRepository = {
     _users: users,
     async findByUsername(username) {
@@ -45,7 +47,49 @@ function makeDeps() {
       return {};
     },
   };
-  return { userRepository, passwordHasher, tokenService };
+  const pendingRegistrationRepository = {
+    _pendingRegistrations: pendingRegistrations,
+    async findByEmail(email) {
+      return pendingRegistrations.find((registration) => registration.email === email) || null;
+    },
+    async findByUsername(username) {
+      return pendingRegistrations.find((registration) => registration.username === username) || null;
+    },
+    async create(data) {
+      const registration = { id: pendingRegistrations.length + 1, ...data };
+      pendingRegistrations.push(registration);
+      return registration;
+    },
+    async updateById(id, data) {
+      const registration = pendingRegistrations.find((entry) => entry.id === id);
+      if (!registration) return null;
+      Object.assign(registration, data);
+      return registration;
+    },
+    async deleteById(id) {
+      const index = pendingRegistrations.findIndex((entry) => entry.id === id);
+      if (index >= 0) pendingRegistrations.splice(index, 1);
+    },
+    async deleteExpired(now) {
+      for (let index = pendingRegistrations.length - 1; index >= 0; index--) {
+        if (new Date(pendingRegistrations[index].expiresAt) <= now) pendingRegistrations.splice(index, 1);
+      }
+    },
+  };
+  const emailService = {
+    _sentVerificationCodes: sentVerificationCodes,
+    async sendVerificationCode(message) {
+      sentVerificationCodes.push(message);
+    },
+  };
+  return {
+    userRepository,
+    pendingRegistrationRepository,
+    emailService,
+    passwordHasher,
+    tokenService,
+    sentVerificationCodes,
+  };
 }
 
 function makeService(deps = makeDeps()) {
@@ -64,18 +108,39 @@ test('AuthService.register rechaza email duplicado', async () => {
   const service = makeService(deps);
 
   await assert.rejects(
-    () => service.register({ username: 'b', email: 'a@a.com', password: 'x' }),
+    () => service.register({ username: 'b', email: 'a@a.com', password: 'Secret#123' }),
     ConflictError
   );
 });
 
-test('AuthService.register hashea y crea el usuario', async () => {
-  const service = makeService();
+test('AuthService.register guarda un registro pendiente y envía el código', async () => {
+  const deps = makeDeps();
+  const service = makeService(deps);
 
-  const user = await service.register({ username: 'a', email: 'a@a.com', password: 'secret' });
+  const result = await service.register({ username: 'a', email: 'a@a.com', password: 'Secret#123' });
 
-  assert.equal(user.password, 'hashed:secret');
-  assert.equal(user.id, 1);
+  assert.equal(result.requiresVerification, true);
+  assert.equal(result.email, 'a@a.com');
+  assert.equal(deps.userRepository._users.length, 0);
+  assert.equal(deps.pendingRegistrationRepository._pendingRegistrations.length, 1);
+  assert.equal(deps.pendingRegistrationRepository._pendingRegistrations[0].password, 'hashed:Secret#123');
+  assert.equal(deps.sentVerificationCodes.length, 1);
+  assert.match(deps.sentVerificationCodes[0].code, /^\d{6}$/);
+});
+
+test('AuthService.verifyRegistration crea la cuenta y elimina el registro pendiente', async () => {
+  const deps = makeDeps();
+  const service = makeService(deps);
+  await service.register({ username: 'a', email: 'a@a.com', password: 'Secret#123' });
+
+  const result = await service.verifyRegistration({
+    email: 'a@a.com',
+    code: deps.sentVerificationCodes[0].code,
+  });
+
+  assert.deepEqual(result.user, { id: 1, username: 'a', email: 'a@a.com' });
+  assert.equal(deps.userRepository._users[0].password, 'hashed:Secret#123');
+  assert.equal(deps.pendingRegistrationRepository._pendingRegistrations.length, 0);
 });
 
 test('AuthService.login exige todos los campos', async () => {

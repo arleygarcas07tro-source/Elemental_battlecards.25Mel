@@ -84,7 +84,7 @@ class SequelizeShopRepository {
   async purchaseWithModelTransaction(userId, item) {
     const currency = item.currency;
     return this.models.PlayerStats.sequelize.transaction(async (transaction) => {
-      const [stats] = await this.models.PlayerStats.findOrCreate({
+      await this.models.PlayerStats.findOrCreate({
         where: { userId },
         defaults: { userId },
         transaction,

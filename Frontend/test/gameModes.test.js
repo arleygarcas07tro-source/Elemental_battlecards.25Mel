@@ -34,7 +34,7 @@ test('cada modalidad configura el ritmo de acciones y el límite de turno corres
     });
 
     assert.equal(timedMatch.turn.config.ACTIONS_PER_TURN, 1);
-    assert.equal(timedMatch.turn.config.TURN_TIME_LIMIT_MS, GAME_CONFIG.TURN_TIME_LIMIT_MS);
+    assert.equal(timedMatch.turn.config.TURN_TIME_LIMIT_MS, 8000);
     assert.equal(challengeMatch.turn.config.ACTIONS_PER_TURN, GAME_CONFIG.ACTIONS_PER_TURN);
     assert.equal(challengeMatch.turn.config.TURN_TIME_LIMIT_MS, 10000);
 });

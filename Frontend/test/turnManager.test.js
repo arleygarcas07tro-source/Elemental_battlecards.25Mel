@@ -23,17 +23,24 @@ test('TurnManager: beginPlayerTurn avanza el turno y no obliga a atacar al inici
     assert.equal(info.mustAttack, false);
 });
 
-test('TurnManager: obliga a atacar tras MANDATORY_ATTACK_TURN-1 turnos sin atacar', () => {
+test('TurnManager: obliga a atacar como tercera acción tras dos acciones normales', () => {
     const t = new TurnManager();
     t.beginPlayerTurn();
-    t.finishPlayerTurn();
-    t.beginPlayerTurn();
-    t.finishPlayerTurn();
+    t.consumePlayerAction();
 
-    const info = t.beginPlayerTurn();
+    assert.equal(t.playerMustAttackThisTurn, false);
+    assert.equal(t.canPlayerAct(), true);
 
-    assert.equal(info.mustAttack, true);
-    assert.equal(info.turnsSinceLastAttack, 2);
+    t.consumePlayerAction();
+
+    assert.equal(t.playerMustAttackThisTurn, true);
+    assert.equal(t.playerActionsLeft, 0);
+    assert.equal(t.canPlayerAct(), true);
+
+    t.consumePlayerAttackAction();
+
+    assert.equal(t.playerMustAttackThisTurn, false);
+    assert.equal(t.canPlayerAct(), false);
 });
 
 test('TurnManager: un ataque resetea turnsSinceLastAttack', () => {
