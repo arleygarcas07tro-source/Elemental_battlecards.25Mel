@@ -7,6 +7,7 @@ class ProfileController {
     assertContract(profileService, [
       'getProfile',
       'listMissions',
+      'claimMissionReward',
       'getLanRanking',
       'listAchievements',
       'recordBattle',
@@ -30,6 +31,14 @@ class ProfileController {
   async getMissions(req, res, next) {
     try {
       res.json(await this.profileService.listMissions(req.user.id));
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  async claimMissionReward(req, res, next) {
+    try {
+      res.json(await this.profileService.claimMissionReward(req.user.id, (req.params || {}).missionId));
     } catch (error) {
       next(error);
     }

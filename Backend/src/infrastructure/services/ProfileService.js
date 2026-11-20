@@ -2,7 +2,7 @@
 
 const IProfileRepository = require('../repositories/IProfileRepository');
 const assertContract = require('../../core/assertContract');
-const { ValidationError } = require('../../core/errors');
+const { ValidationError, ConflictError } = require('../../core/errors');
 
 const ELEMENTS = ['fuego', 'agua', 'planta', 'luz', 'sombra', 'espiritu'];
 const TOTAL_CARDS = 18;
@@ -103,6 +103,18 @@ class ProfileService {
 
   async listMissions(userId) {
     return this.profileRepository.listMissions(userId);
+  }
+
+  async claimMissionReward(userId, missionId) {
+    if (typeof missionId !== 'string' || !missionId.trim()) {
+      throw new ValidationError('La misión indicada no es válida.');
+    }
+    const result = await this.profileRepository.claimMissionReward(userId, missionId.trim());
+    if (result.reason === 'not-found') throw new ValidationError('La misión no existe.');
+    if (result.reason === 'not-completed') throw new ConflictError('Completa la misión antes de obtener la recompensa.');
+    if (result.reason === 'already-claimed') throw new ConflictError('Ya obtuviste la recompensa de esta misión.');
+    if (result.reason === 'no-reward') throw new ConflictError('Esta misión no tiene una recompensa disponible.');
+    return result;
   }
 
   async getLanRanking(userId) {

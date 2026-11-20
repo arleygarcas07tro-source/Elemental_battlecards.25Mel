@@ -134,8 +134,7 @@ export default class LANEventRouter {
         const defender = (isRemotePlayer ? this.match.player : this.match.opponent).field.get(defenderIndex);
         const health = CardHealthService.applyDamage(defender, result && result.damage);
         if (isOpponentAction) {
-            this.match.turn.consumeOpponentAction();
-            this.match.turn.opponentPerformedAttackThisTurn = true;
+            this.match.turn.consumeOpponentAttackAction();
         }
         return {
             kind: 'attack',

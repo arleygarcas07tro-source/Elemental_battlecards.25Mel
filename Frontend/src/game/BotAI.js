@@ -120,19 +120,15 @@ export default class BotAI {
      * @returns {number}
      */
     computeScoreModifier() {
-        switch (this.difficulty) {
-            case 6: return between(1, 3);
-            case 7: return between(2, 5);
-            case 8: return between(3, 7);
-            case 9: return between(5, 10);
-            case 10: return 10;
-            case 1: return between(-15, -5);
-            case 2: return between(-3, 0);
-            case 3: return 0;
-            case 4: return between(0, 2);
-            case 5: return 0;
-            default: return 0;
-        }
+        if (this.difficulty === 1) return between(-15, -5);
+        if (this.difficulty === 2) return between(-3, 0);
+        if (this.difficulty === 3) return 0;
+
+        const progress = Math.max(0, Math.min(1,
+            (this.difficultyPercent - 200) / (1000 - 200)));
+        const minimumBonus = Math.floor(progress * 6);
+        const maximumBonus = Math.ceil(progress * 10);
+        return between(minimumBonus, maximumBonus);
     }
 
     get actionDelay() {

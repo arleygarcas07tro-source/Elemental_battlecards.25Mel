@@ -150,8 +150,8 @@ export default class GameMatch {
     /**
      * Ejecuta el poder de esencia del jugador (clic en un orbe propio activo).
      * Obtiene el poder del registro y delega validación (EssencePowerService)
-     * y ejecución. Los poderes NO consumen acciones del turno: consumen las
-     * gemas de su coste y respetan las condiciones propias de cada poder.
+     * y ejecución. Los poderes NO consumen acciones del turno: consumen gemas
+     * en Gemas Elementales o cargas de tienda en los otros modos.
      * Emite 'essence-power-used'.
      * @param {string} essenceType Tipo de esencia ('fuego', 'agua', ...).
      * @returns {{ok: boolean, reason?: string, essenceType?: string, name?: string, changed?: string[], gemCost?: number}}
@@ -179,6 +179,7 @@ export default class GameMatch {
             actingPlayer: actor,
             targetPlayer: target,
             turn: this.turn,
+            mode: this.mode,
             match: this,
             emitConvergenceStatus: () => this._emitConvergenceStatus()
         };
@@ -234,7 +235,7 @@ export default class GameMatch {
      * @returns {{result: object, attackerData: object, defenderData: object, attackerIndex: number, defenderIndex: number}|null}
      */
     resolvePlayerAttack({ attackerIndex, defenderIndex }) {
-        if (this.turn.state !== 'player-turn' || !this.turn.canPlayerAct()) return null;
+        if (this.turn.state !== 'player-turn' || !this.turn.canPlayerAttack()) return null;
         const attackerData = this.player.field.get(attackerIndex);
         const defenderData = this.opponent.field.get(defenderIndex);
         if (!attackerData || !defenderData) return null;
@@ -254,18 +255,13 @@ export default class GameMatch {
     }
 
     /**
-     * Consume la acción de ataque del jugador: gasta una acción del cupo,
-     * registra el ataque y agota Ráfaga (el próximo ataque vuelve al daño
-     * normal). Atacar cumple además la obligación de atacar:
-     * el resto del cupo queda libre para colocar o fusionar.
+     * Consume un ataque normal o la tercera acción obligatoria del jugador
+     * y agota Ráfaga (el próximo ataque vuelve al daño normal).
      * @returns {number} Acciones que quedan disponibles en el turno.
      */
     markPlayerAttackConsumed() {
-        this.turn.consumePlayerAction();
-        this.turn.playerPerformedAttackThisTurn = true;
-        this.turn.playerTurnsSinceLastAttack = 0;
+        this.turn.consumePlayerAttackAction();
         this.turn.playerNextAttackBreaksTie = false;
-        this.turn.playerMustAttackThisTurn = false;
         return this.turn.playerActionsLeft;
     }
 

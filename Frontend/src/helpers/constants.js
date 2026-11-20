@@ -24,7 +24,6 @@ export const GAME_CONFIG = {
     // Acciones por turno (atacar, colocar o fusionar). Las acciones sin usar
     // se pierden al terminar el turno: nunca se acumulan.
     ACTIONS_PER_TURN: 2,
-    MANDATORY_ATTACK_TURN: 3,
     INACTIVE_TURNS_TO_LOSE: 3,
     UNIQUE_TYPES_TO_WIN: 6,
     ESSENCES_TO_WIN: 6,

@@ -6,6 +6,7 @@ const IPendingRegistrationRepository = require('../contracts/IPendingRegistratio
 const IEmailService = require('../contracts/IEmailService');
 const IPasswordHasher = require('../contracts/IPasswordHasher');
 const ITokenService = require('../contracts/ITokenService');
+const PasswordPolicy = require('../validation/PasswordPolicy');
 const ILogger = require('../../core/ILogger');
 const { AppError, ValidationError, UnauthorizedError, ConflictError } = require('../../core/errors');
 
@@ -35,6 +36,10 @@ class AuthService {
     const normalizedEmail = String(email || '').trim().toLowerCase();
     if (!normalizedUsername || !normalizedEmail || !password) {
       throw new ValidationError('Por favor, proporciona todos los campos.');
+    }
+    const missingPasswordRequirements = PasswordPolicy.getMissingRequirements(password);
+    if (missingPasswordRequirements.length > 0) {
+      throw new ValidationError(`La contraseña debe cumplir estos requisitos: ${missingPasswordRequirements.join(', ')}.`);
     }
     if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(normalizedEmail)) {
       throw new ValidationError('Introduce un correo electrónico válido.');

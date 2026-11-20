@@ -25,7 +25,7 @@ export default class AttackController {
         const { turn, match, renderer } = this.ctx;
         // Bloquear si no es el turno, se agotó el cupo de acciones o hay una
         // animación bloqueante en curso.
-        if (!this.ctx.turnController.canPlayerActNow()) {
+        if (!this.ctx.turnController.canPlayerAttackNow()) {
             console.log('[GameScene] No puedes gastar una acción ahora mismo.');
             if (turn.state !== 'player-turn' || turn.playerActionsLeft <= 0) {
                 this.ctx.interaction.deselectCard(false);
@@ -67,6 +67,7 @@ export default class AttackController {
 
         // Consumimos la acción del jugador y agotamos Ráfaga.
         match.markPlayerAttackConsumed();
+        this.scene.events.emit('tutorial-player-attacked');
         console.log('[GameScene] Resultado del combate', result);
 
         // Registrar cooldowns / consecutiveAttacks
@@ -93,7 +94,7 @@ export default class AttackController {
         const { turn, match, renderer } = this.ctx;
         // Bloquear si no es el turno, se agotó el cupo de acciones o hay una
         // animación bloqueante en curso.
-        if (!this.ctx.turnController.canPlayerActNow()) {
+        if (!this.ctx.turnController.canPlayerAttackNow()) {
             console.log('[GameScene] No puedes gastar una acción ahora mismo.');
             if (turn.state !== 'player-turn' || turn.playerActionsLeft <= 0) {
                 this.ctx.interaction.deselectCard(false);
@@ -114,6 +115,7 @@ export default class AttackController {
         const attackerData = attackingCardObject.cardData || attackingCardObject.getData('cardData');
         // Un ataque directo siempre gana: no aplica la Ráfaga, pero la consume.
         match.markPlayerAttackConsumed();
+        this.scene.events.emit('tutorial-player-attacked');
 
         console.log('[GameScene] Jugador realiza ataque directo', { attackerType: attackerData.type, attackerIndex: attackingCardObject.getData('fieldIndex') });
 

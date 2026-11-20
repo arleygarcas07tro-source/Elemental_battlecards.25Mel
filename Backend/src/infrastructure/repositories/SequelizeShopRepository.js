@@ -31,6 +31,18 @@ class SequelizeShopRepository {
       return this.purchaseWithModelTransaction(userId, item);
     }
 
+    // Responder con el saldo insuficiente esperado antes de llamar al
+    // procedimiento; evita que distintos códigos de error del proveedor se
+    // conviertan en un HTTP 500 genérico.
+    const existing = await this.models.PlayerShopItem.findOne({ where: { userId, itemId: item.id } });
+    if (!item.repeatable && existing && existing.quantity > 0) {
+      return { ok: false, reason: 'already-owned' };
+    }
+    const stats = await this.models.PlayerStats.findByPk(userId, { attributes: [item.currency] });
+    if (Number(stats && stats[item.currency]) < Number(item.price)) {
+      return { ok: false, reason: 'insufficient-funds' };
+    }
+
     try {
       await sequelize.transaction(async (transaction) => {
         await sequelize.query(
@@ -51,14 +63,17 @@ class SequelizeShopRepository {
 
   getProcedurePurchaseFailureReason(error) {
     const databaseError = error.original || error.parent || error;
+    const message = [databaseError.message, databaseError.detail, error.message, error.sqlMessage]
+      .filter(Boolean)
+      .join(' ')
+      .toLocaleLowerCase('es');
+    if (/(insuficient|saldo|sin fondos|no tienes (?:suficientes|monedas|gemas)|insufficient|not enough|balance.{0,20}(?:low|insufficient))/.test(message)) {
+      return 'insufficient-funds';
+    }
     if (databaseError.code !== 'P0001') return null;
 
-    const message = String(databaseError.message || error.message || '').toLocaleLowerCase('es');
     if (/(ya\s+(?:tienes|tiene|posees|posee|adquiriste|adquirido)|already\s+(?:own|owned))/.test(message)) {
       return 'already-owned';
-    }
-    if (/(insuficient|sin saldo|no tienes (?:suficientes|monedas|gemas)|insufficient|not enough)/.test(message)) {
-      return 'insufficient-funds';
     }
     if (/(no existe|no est[aá] disponible|no est[aá] activo|inactivo|not available|does not exist)/.test(message)) {
       return 'unavailable';
@@ -69,7 +84,7 @@ class SequelizeShopRepository {
   async purchaseWithModelTransaction(userId, item) {
     const currency = item.currency;
     return this.models.PlayerStats.sequelize.transaction(async (transaction) => {
-      const [stats] = await this.models.PlayerStats.findOrCreate({
+      await this.models.PlayerStats.findOrCreate({
         where: { userId },
         defaults: { userId },
         transaction,

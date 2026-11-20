@@ -28,6 +28,17 @@ class PlayerMissionModel {
         allowNull: true,
         field: 'completed_at',
       },
+      rewardClaimed: {
+        type: DataTypes.BOOLEAN,
+        allowNull: false,
+        defaultValue: false,
+        field: 'reward_claimed',
+      },
+      rewardClaimedAt: {
+        type: DataTypes.DATE,
+        allowNull: true,
+        field: 'reward_claimed_at',
+      },
     }, {
       tableName: 'player_missions',
       timestamps: false,

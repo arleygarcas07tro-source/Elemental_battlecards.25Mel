@@ -16,17 +16,17 @@ test('LevelAttackRule: nivel 1 encadena ataques consecutivos sin bloquear', () =
     assert.equal(r.blockedTurn, null);
 });
 
-test('LevelAttackRule: nivel 2 se bloquea al segundo ataque consecutivo', () => {
+test('LevelAttackRule: nivel 2 puede atacar en turnos consecutivos', () => {
     const r = LevelAttackRule.registerAttack({ level: 2, nowTurn: 2, lastAttackedTurn: 1, consecutiveAttacks: 1 });
 
-    assert.equal(r.blockedTurn, 3);
-    assert.equal(r.consecutiveAttacks, 0);
+    assert.equal(r.blockedTurn, null);
+    assert.equal(r.consecutiveAttacks, 2);
 });
 
-test('LevelAttackRule: nivel 3 se bloquea siempre tras atacar', () => {
+test('LevelAttackRule: nivel 3 no recibe enfriamiento por atacar', () => {
     const r = LevelAttackRule.registerAttack({ level: 3, nowTurn: 5 });
 
-    assert.equal(r.blockedTurn, 6);
+    assert.equal(r.blockedTurn, null);
 });
 
 test('LevelAttackRule: ataques no consecutivos reinician el contador', () => {

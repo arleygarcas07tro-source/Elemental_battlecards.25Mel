@@ -39,7 +39,7 @@ class ShopService {
       throw new ConflictError('Ya tienes este artículo.');
     }
     if (!result.ok && result.reason === 'insufficient-funds') {
-      throw new ConflictError(`No tienes suficientes ${item.currency === 'coins' ? 'monedas' : 'gemas'}.`);
+      throw new ConflictError(item.currency === 'coins' ? 'Monedas insuficientes.' : 'Gemas insuficientes.');
     }
     if (!result.ok && result.reason === 'unavailable') {
       throw new ConflictError('El artículo ya no está disponible.');

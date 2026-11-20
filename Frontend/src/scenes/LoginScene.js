@@ -273,14 +273,6 @@ export default class LoginScene extends Phaser.Scene {
             ? Math.min(0.36, this.scale.width / 1200)
             : Math.min(0.6, this.scale.width / 900));
 
-        // Copyright
-        this.copyText = this.add.text(this.scale.width / 2, this.scale.height - 18, 'Todos los derechos reservados', {
-            fontFamily: 'Segoe UI, Tahoma, sans-serif',
-            fontSize: '14px',
-            color: '#ffd77a'
-        }).setOrigin(0.5, 0.5).setDepth(1);
-        this.copyText.setVisible(this.scale.height > 520);
-
         this.scale.off('resize', this.resize, this);
         this.scale.on('resize', this.resize, this);
         this.events.once('shutdown', () => this.scale.off('resize', this.resize, this));
@@ -299,10 +291,6 @@ export default class LoginScene extends Phaser.Scene {
             this.logoImage.setScale(compactLayout
                 ? Math.min(0.36, this.scale.width / 1200)
                 : Math.min(0.6, this.scale.width / 900));
-        }
-        if (this.copyText) {
-            this.copyText.setPosition(this.scale.width / 2, this.scale.height - 18);
-            this.copyText.setVisible(this.scale.height > 520);
         }
     }
 }

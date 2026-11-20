@@ -79,14 +79,14 @@ export default class PauseScene extends Phaser.Scene {
 
         this.createMenuButton({
             x: centerX, y: buttonStartY + buttonSpacing * 2, width: buttonWidth, height: buttonHeight,
-            label: 'SALIR AL MENÚ PRINCIPAL', icon: '↶', accent: 0xe18c7b,
+            label: 'VOLVER A SELECCIÓN DE NIVELES', icon: '↶', accent: 0xe18c7b,
             depth: depth + 4, scale, subdued: true
         }).on('pointerdown', () => {
             const gameScene = this.scene.get('GameScene');
             const playerData = gameScene?.playerData || this.playerData;
             this.scene.stop('UIScene');
             this.scene.stop('GameScene');
-            this.scene.start('HomeScenes', { playerData });
+            this.scene.start('DifficultySelectScene', { playerData });
         });
 
         this.add.text(centerX, panelTop + panelHeight - 27 * scale, '✦  ELEMENTAL BATTLECARDS  ✦', {

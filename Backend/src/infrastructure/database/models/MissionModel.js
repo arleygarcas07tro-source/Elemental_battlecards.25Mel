@@ -30,6 +30,12 @@ class MissionModel {
         defaultValue: 0,
         field: 'reward_gems',
       },
+      rewardCoins: {
+        type: DataTypes.INTEGER,
+        allowNull: false,
+        defaultValue: 0,
+        field: 'reward_coins',
+      },
     }, {
       tableName: 'missions',
       timestamps: false,

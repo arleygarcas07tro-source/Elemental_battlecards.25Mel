@@ -9,6 +9,15 @@ const Room = require('../entities/Room');
 const ALLOWED_GAME_MODES = ['clasico', 'gemas', 'contrarreloj', 'turnos30'];
 const DEFAULT_GAME_MODE = 'clasico';
 
+function stripControlCharacters(value) {
+  return [...String(value || '')]
+    .filter((character) => {
+      const codePoint = character.codePointAt(0);
+      return codePoint >= 0x20 && codePoint !== 0x7f;
+    })
+    .join('');
+}
+
 class RoomService extends IRoomService {
   constructor({ roomStore, codeGenerator, logger }) {
     super();
@@ -97,10 +106,10 @@ class RoomService extends IRoomService {
       return { success: false, message: 'No perteneces a esta sala.' };
     }
 
-    const cleanText = String(text || '').replace(/[\x00-\x1f\x7f]/g, '').trim().slice(0, 240);
+    const cleanText = stripControlCharacters(text).trim().slice(0, 240);
     if (!cleanText) return { success: false, message: 'Escribe un mensaje antes de enviarlo.' };
 
-    const cleanName = String(senderName || '').replace(/[\x00-\x1f\x7f]/g, '').trim().slice(0, 24) || 'Jugador';
+    const cleanName = stripControlCharacters(senderName).trim().slice(0, 24) || 'Jugador';
     return {
       success: true,
       message: room.addChatMessage({

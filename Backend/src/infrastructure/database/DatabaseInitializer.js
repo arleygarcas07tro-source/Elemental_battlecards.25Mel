@@ -2,6 +2,7 @@
 
 const ILogger = require('../../core/ILogger');
 const ViewPreserver = require('./ViewPreserver');
+const MissionRewardSchemaInitializer = require('./MissionRewardSchemaInitializer');
 
 class DatabaseInitializer {
   constructor({ sequelize, logger, dbRequireSSL = false, dbUseSqlite = true }) {
@@ -26,6 +27,7 @@ class DatabaseInitializer {
     // En PostgreSQL conserva el esquema existente y crea únicamente tablas faltantes.
     if (!this.dbUseSqlite) {
       await this.sequelize.sync();
+      await new MissionRewardSchemaInitializer(this.sequelize.getQueryInterface()).initialize();
       return this.sequelize;
     }
 
@@ -34,6 +36,7 @@ class DatabaseInitializer {
     await viewPreserver.drop(views);
     try {
       await this.sequelize.sync({ alter: true });
+      await new MissionRewardSchemaInitializer(this.sequelize.getQueryInterface()).initialize();
     } finally {
       await viewPreserver.restore(views);
     }
